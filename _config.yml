@@ -1,0 +1,11 @@
+# Site settings
+title: Botleg
+email: blog@botleg.com
+description: > # this means to ignore newlines until "baseurl:"
+baseurl: "" # the subpath of your site, e.g. /blog/
+url: "http://www.botleg.com" # the base hostname & protocol for your site
+github_username:  botleg
+permalink: /stories/:categories/:title
+
+# Build settings
+markdown: kramdown
