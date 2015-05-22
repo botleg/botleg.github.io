@@ -9,3 +9,8 @@ permalink: /stories/:categories/:title
 
 # Build settings
 markdown: kramdown
+
+# Plugins
+gems:
+  - jekyll-sitemap
+  - jekyll-redirect-from
