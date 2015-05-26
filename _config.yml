@@ -19,17 +19,19 @@ gems:
   - jekyll-sitemap
   - jekyll-redirect-from
   - jekyll-assets
+  - jekyll-press
+
+# Plugin: jekyll-assets
+jekyll-press:
+  exclude: ['feed.xml', '*.js', '*.css']
 
 # Plugin: jekyll-assets
 assets:
   dirname: _
-  baseurl: /_/
   sources:
     - _/js
-    - _/css
     - _/images
   js_compressor: uglifier
-  css_compressor: sass
   autosize: false
   cachebust: none
   gzip: false
