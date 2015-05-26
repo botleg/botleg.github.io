@@ -10,7 +10,28 @@ permalink: /stories/:categories/:title
 # Build settings
 markdown: kramdown
 
+# SASS Settings
+sass:
+    style: :compressed
+
 # Plugins
 gems:
   - jekyll-sitemap
   - jekyll-redirect-from
+  - jekyll-assets
+
+# Plugin: jekyll-assets
+assets:
+  dirname: _
+  baseurl: /_/
+  sources:
+    - _/js
+    - _/css
+    - _/images
+  js_compressor: uglifier
+  css_compressor: sass
+  autosize: false
+  cachebust: none
+  gzip: false
+  cache: false
+  debug: false
