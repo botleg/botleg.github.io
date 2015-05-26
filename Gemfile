@@ -1,5 +1,7 @@
 source "https://rubygems.org"
+gem 'rake'
 gem 'jekyll'
+gem 'compass'
 gem 'jekyll-sitemap'
 gem 'jekyll-redirect-from'
 gem 'uglifier'
