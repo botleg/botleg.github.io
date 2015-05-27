@@ -1,5 +1,5 @@
-require 'compass/import-once/activate'
-# Require any additional compass plugins here.
+require 'bourbon'
+require 'neat'
 
 http_path = "/"
 css_dir = "assets/"

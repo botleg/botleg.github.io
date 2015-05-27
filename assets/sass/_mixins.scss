@@ -1,0 +1,19 @@
+@mixin backImage($image, $bgPos: center center) {
+	background: url($image);
+	background-repeat: no-repeat;
+	background-position: $bgPos;
+	-webkit-background-size: cover;
+	-moz-background-size: cover;
+	-o-background-size: cover;
+	background-size: cover;
+}
+	
+@mixin clearfix {
+	&:before, &:after {
+		content: '';
+		display: table;
+	}
+	&:after {
+		clear: both;
+	}
+}

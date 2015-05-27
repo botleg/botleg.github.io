@@ -1,6 +1,8 @@
 source "https://rubygems.org"
 gem 'rake'
 gem 'jekyll'
+gem 'bourbon'
+gem 'neat'
 gem 'compass'
 gem 'jekyll-sitemap'
 gem 'jekyll-redirect-from'

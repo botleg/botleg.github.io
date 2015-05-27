@@ -4,6 +4,11 @@ $base-font-size:   18px;
 $small-font-size:  $base-font-size * 0.875;
 $base-line-height: 1.6;
 
+$visual-grid: true;
+$visual-grid-color: red;
+$visual-grid-index: front;
+$visual-grid-opacity: 0.1;
+
 $spacing-unit:     20px;
 
 $text-color:       #111;
@@ -14,8 +19,11 @@ $grey-color:       #828282;
 $grey-color-light: lighten($grey-color, 40%);
 $grey-color-dark:  darken($grey-color, 25%);
 
-// Width of the content area
-$content-width:    960px;
+// Media Queries
+$narrow: new-breakpoint(max-width 480px);
+$small: new-breakpoint(max-width 650px);
+$medium: new-breakpoint(max-width 960px);
+$wide: new-breakpoint(min-width 960px);
 
 $on-palm:          650px;
 $on-laptop:        960px;
