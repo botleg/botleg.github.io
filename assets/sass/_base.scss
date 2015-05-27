@@ -8,8 +8,6 @@ dl, dd, ol, ul, figure {
     padding: 0;
 }
 
-
-
 /**
  * Basic styling
  */
@@ -148,36 +146,18 @@ pre {
     }
 }
 
-
-
 /**
  * Wrapper
  */
 .wrapper {
     @include clearfix;
-    @include outer-container($on-laptop);
-    padding: 0;
+    @include outer-container;
+    padding: 0 $spacing-unit/2;        
 
     @include media($medium) {
-        padding: 0 $spacing-unit/2;        
+        padding: 0 $spacing-unit/4;
     }
 }
-
-
-
-/**
- * Clearfix
- */
-%clearfix {
-
-    &:after {
-        content: "";
-        display: table;
-        clear: both;
-    }
-}
-
-
 
 /**
  * Icons

@@ -1,7 +1,7 @@
 # Site settings
 title: Botleg
 email: blog@botleg.com
-description: > # this means to ignore newlines until "baseurl:"
+description: Lorem ipsum dolor sit amet, consectetur adipisicing elit. Nisi quia illo impedit consequatur nihil nam in esse architecto labore cum voluptatem officia, perspiciatis itaque non libero aperiam, placeat, eaque vel.
 baseurl: "" # the subpath of your site, e.g. /blog/
 url: "http://botleg.com" # the base hostname & protocol for your site
 github_username:  botleg
@@ -16,11 +16,7 @@ gems:
   - jekyll-sitemap
   - jekyll-redirect-from
   - jekyll-assets
-  - jekyll-press
-
-# Plugin: jekyll-assets
-jekyll-press:
-  exclude: ['feed.xml', '*.js', '*.css']
+  - octopress-minify-html
 
 # Plugin: jekyll-assets
 assets:
