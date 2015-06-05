@@ -8,7 +8,7 @@ layout: default
   </header>
 
   <article class="post-content">
-    <p class="post-meta">Posted on {{ page.date | date: "%b %-d, %Y" }}{% if page.meta %} • {{ page.meta }}{% endif %}</p>
+    <p class="post-meta">Posted by {{ site.author }} on {{ page.date | date: "%b %-d, %Y" }}{% if page.meta %} • {{ page.meta }}{% endif %}</p>
     {{ content }}
   </article>
 

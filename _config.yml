@@ -1,6 +1,7 @@
 # Site settings
 title: Botleg
 email: blog@botleg.com
+author: Hanzel Jesheen
 description: Lorem ipsum dolor sit amet, consectetur adipisicing elit. Nisi quia illo impedit consequatur nihil nam in esse architecto labore cum voluptatem officia, perspiciatis itaque non libero aperiam, placeat, eaque vel.
 baseurl: "" # the subpath of your site, e.g. /blog/
 url: "http://botleg.com" # the base hostname & protocol for your site
