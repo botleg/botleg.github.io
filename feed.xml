@@ -5,8 +5,8 @@
     <description>Lorem ipsum dolor sit amet, consectetur adipisicing elit. Nisi quia illo impedit consequatur nihil nam in esse architecto labore cum voluptatem officia, perspiciatis itaque non libero aperiam, placeat, eaque vel.</description>
     <link>http://botleg.com/</link>
     <atom:link href="http://botleg.com/feed.xml" rel="self" type="application/rss+xml"/>
-    <pubDate>Sat, 06 Jun 2015 00:07:25 +0530</pubDate>
-    <lastBuildDate>Sat, 06 Jun 2015 00:07:25 +0530</lastBuildDate>
+    <pubDate>Sat, 06 Jun 2015 00:10:25 +0530</pubDate>
+    <lastBuildDate>Sat, 06 Jun 2015 00:10:25 +0530</lastBuildDate>
     <generator>Jekyll v2.5.3</generator>
     <author>
         <name>Hanzel Jesheen</name>
@@ -30,7 +30,7 @@
 
 </description>
         <pubDate>Tue, 19 May 2015 05:09:42 +0530</pubDate>
-        <dc:creator>Hanzel Jesheen</dc:creator>
+        <author><name>Hanzel Jesheen</name></author>
         <link>http://botleg.com/stories/jekyll/welcome-to-jekyll</link>
         <guid isPermaLink="true">http://botleg.com/stories/jekyll/welcome-to-jekyll</guid>
         
