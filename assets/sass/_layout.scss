@@ -3,18 +3,17 @@
  */
 .site-header {
     border-top: 5px solid $grey-color-dark;
-    border-bottom: 1px solid $grey-color-light;
     min-height: 56px;
 
     position: relative;
 }
 
 .site-title {
-    font-size: 26px;
-    line-height: 56px;
-    letter-spacing: -1px;
-    margin-bottom: 0;
     float: left;
+    font-size: 26px;
+    letter-spacing: -1px;
+    line-height: 56px;
+    margin-bottom: 0;
 
     &,
     &:visited {
@@ -44,8 +43,8 @@
 .footer-col-wrapper {
     @include clearfix;
     @include outer-container;
-    font-size: 15px;
     color: $grey-color;
+    font-size: 15px;
 }
 
 .footer-col {
@@ -82,7 +81,7 @@
  * Page content
  */
 .page-content {
-    padding: $spacing-unit 0;
+    padding: 0 0 $spacing-unit;
 }
 
 .page-heading {
@@ -94,8 +93,8 @@
 }
 
 .post-list {
-    margin-left: 0;
     list-style: none;
+    margin-left: 0;
 
     > li {
         margin-bottom: $spacing-unit;
@@ -103,8 +102,8 @@
 }
 
 .post-meta {
-    font-size: $small-font-size;
     color: $grey-color;
+    font-size: $small-font-size;
 }
 
 .post-link {
@@ -118,11 +117,26 @@
  * Posts
  */
 .post-header {
+    @include prefixer(box-align, center, webkit moz ms spec);
+    @include prefixer(align-items, center, webkit spec);
+    @include prefixer(box-pack, center, webkit moz);
+    @include prefixer(justify-content, center, webkit spec);
+
+    // @include radial-gradient(circle at 50% 0%, #8abb5d, #42736f);
+
+    display: -webkit-box;
+    display: -moz-box;
+    display: -ms-flexbox;
+    display: -webkit-flex;
+    display: flex;
+    -ms-flex-align: center;
+    -ms-flex-pack: center;
     height: 300px;
-    margin-bottom: $spacing-unit;
+    margin-bottom: $spacing-unit/2;
 }
 
 .post-title, .page-title {
+    color: $grey-color-light;
     font-size: 42px;
     letter-spacing: -1px;
     line-height: 1;
