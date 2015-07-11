@@ -4,7 +4,15 @@ layout: default
 <div class="post">
 
 	<header class="post-header" style="{{ page.bg }}">
-		<h1 class="post-title">{{ page.title }}</h1>
+		<div class="header-content">
+			<h1 class="post-title">{{ page.title }}</h1>
+			{% if page.gh %}
+				<a class="icon gh" href="{{ page.gh }}" target="blank"><span>View Code</span></a>
+			{% endif %}
+			{% if page.demo %}
+				<a class="icon code" href="{{ page.demo }}" target="blank"><span>View Demo</span></a>
+			{% endif %}
+		</div>
 	</header>
 
 	<div class="wrapper">

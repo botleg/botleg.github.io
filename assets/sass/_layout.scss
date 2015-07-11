@@ -135,11 +135,36 @@
     margin-bottom: $spacing-unit/2;
 }
 
+.header-content {
+    text-align: center;
+}
+
+.icon {
+    background-position: 10px center;
+    background-repeat: no-repeat;
+    background-size: 30px;
+    padding: 0 30px 0 45px;
+
+    span {
+        @include transition(color .2s ease-in 0s);
+        color: $background-color;
+    }
+
+    &:hover {
+        span {
+            color: $text-color;
+        }
+    }
+
+    &.gh { background-image: url('/assets/images/browser.svg');}
+    &.code { background-image: url('/assets/images/GitHub-Mark-Light-32px.png');}
+}
+
 .post-title, .page-title {
     color: $grey-color-light;
     font-size: 42px;
     letter-spacing: -1px;
-    line-height: 1;
+    line-height: 1.2;
 
     @include media($medium) {
         font-size: 36px;
