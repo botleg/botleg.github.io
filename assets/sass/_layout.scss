@@ -148,6 +148,11 @@
     span {
         @include transition(color .2s ease-in 0s);
         color: $background-color;
+        display: none;
+
+        @include media($narrow) {
+            display: inline;
+        }
     }
 
     &:hover {
@@ -162,12 +167,12 @@
 
 .post-title, .page-title {
     color: $grey-color-light;
-    font-size: 42px;
+    font-size: 36px;
     letter-spacing: -1px;
     line-height: 1.2;
 
-    @include media($medium) {
-        font-size: 36px;
+    @include media($small) {
+        font-size: 42px;
     }
 }
 
