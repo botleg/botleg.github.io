@@ -43,6 +43,16 @@ img {
     vertical-align: middle;
 }
 
+.image-wrapper {
+    text-align: center;
+
+    .image-caption {
+        color: $grey-color;
+        font-size: $small-font-size;
+        margin-top: $spacing-unit / 6;
+    }
+}
+
 
 
 /**
@@ -87,15 +97,16 @@ h1, h2, h3, h4, h5, h6 {
  * Links
  */
 a {
+    @include transition(color .2s ease-in 0s);
     color: $brand-color;
     text-decoration: none;
 
     &:visited {
-        color: darken($brand-color, 15%);
+        color: darken($brand-color, 25%);
     }
 
     &:hover {
-        color: $text-color;
+        color: darken($brand-color, 50%);
     }
 }
 
