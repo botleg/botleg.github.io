@@ -5,8 +5,8 @@
     <description>Lorem ipsum dolor sit amet, consectetur adipisicing elit. Nisi quia illo impedit consequatur nihil nam in esse architecto labore cum voluptatem officia, perspiciatis itaque non libero aperiam, placeat, eaque vel.</description>
     <link>http://botleg.com/</link>
     <atom:link href="http://botleg.com/feed" rel="self" type="application/rss+xml"/>
-    <pubDate>Sat, 11 Jul 2015 10:16:59 +0530</pubDate>
-    <lastBuildDate>Sat, 11 Jul 2015 10:16:59 +0530</lastBuildDate>
+    <pubDate>Sun, 12 Jul 2015 12:23:36 +0530</pubDate>
+    <lastBuildDate>Sun, 12 Jul 2015 12:23:36 +0530</lastBuildDate>
     <generator>Jekyll v2.5.3</generator>
     
       <item>
@@ -23,6 +23,20 @@
 &lt;span class=&quot;k&quot;&gt;end&lt;/span&gt;
 &lt;span class=&quot;n&quot;&gt;print_hi&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;Tom&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
 &lt;span class=&quot;c1&quot;&gt;#=&amp;gt; prints &amp;#39;Hi, Tom&amp;#39; to STDOUT.&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;div class=&quot;image-wrapper&quot;&gt;
+    
+    &lt;a href=&quot;https://github.com&quot; title=&quot;Github Logo&quot; target=&quot;_blank&quot;&gt;
+    
+        &lt;img src=&quot;/assets/images/GitHub-Mark-Light-32px.png&quot; alt=&quot;Github Logo&quot; /&gt;
+    
+    &lt;/a&gt;
+    
+    
+        &lt;p class=&quot;image-caption&quot;&gt;Github Logo&lt;/p&gt;
+    
+&lt;/div&gt;
+&lt;p&gt;This is the &lt;a href=&quot;http://jekyllrb.com&quot;&gt;new link&lt;/a&gt;&lt;/p&gt;
 
 &lt;p&gt;Check out the &lt;a href=&quot;http://jekyllrb.com&quot;&gt;Jekyll docs&lt;/a&gt; for more info on how to get the most out of Jekyll. File all bugs/feature requests at &lt;a href=&quot;https://github.com/jekyll/jekyll&quot;&gt;Jekyll’s GitHub repo&lt;/a&gt;. If you have questions, you can ask them on &lt;a href=&quot;https://github.com/jekyll/jekyll-help&quot;&gt;Jekyll’s dedicated Help repository&lt;/a&gt;.&lt;/p&gt;
 
