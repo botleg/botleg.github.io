@@ -10,7 +10,8 @@ permalink: /stories/:categories/:title
 exclude: [config.rb, Gemfile, Gemfile.lock, Rakefile, assets/sass]
 
 # Build settings
-markdown: kramdown
+markdown: redcarpet
+highlighter: pygments
 
 defaults:
   -
