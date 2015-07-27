@@ -2,8 +2,11 @@
 
   <div class="wrapper">
 
-    <a class="site-title" href="{{ site.baseurl }}/">{{ site.title }}</a>
+    <a class="site-title" href="{{ site.baseurl }}/">{{ site.title | capitalize }}</a>
 
+	<div id="search">
+		<input type="text" placeholder="search" id="searchbox">
+	</div>
   </div>
 
 </header>
