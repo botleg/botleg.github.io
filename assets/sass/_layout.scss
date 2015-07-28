@@ -32,8 +32,8 @@
         float: right;
         font-size: 1em;
         height: 40px;
-        max-width: 150px;
         line-height: 40px;
+        max-width: 150px;
         padding: 5px 10px 5px 30px;
 
         &:focus {
@@ -135,12 +135,14 @@
 
 .post-meta {
     color: $grey-color;
+    display: inline-block;
     font-size: $small-font-size;
 }
 
 .post-link {
-    display: block;
+    display: inline-block;
     font-size: 24px;
+    margin-right: 30px;
 }
 
 

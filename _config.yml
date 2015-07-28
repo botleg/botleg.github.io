@@ -2,7 +2,7 @@
 title: Botleg
 email: blog@botleg.com
 author: Hanzel Jesheen
-description: Lorem ipsum dolor sit amet, consectetur adipisicing elit. Nisi quia illo impedit consequatur nihil nam in esse architecto labore cum voluptatem officia, perspiciatis itaque non libero aperiam, placeat, eaque vel.
+description: Hi, botleg is a blog where you can find tutorials and techniques in web development, big data analysis, databases, cloud computing and anything related to technology.
 baseurl: "" # the subpath of your site, e.g. /blog/
 url: "http://botleg.com" # the base hostname & protocol for your site
 github_username:  botleg
@@ -20,6 +20,7 @@ defaults:
       type: "posts"
     values:
       bg: "background-image:-webkit-radial-gradient(50% 0%, circle, #8abb5d,#42736f);background-image:radial-gradient(circle at 50% 0%, #8abb5d,#42736f);"
+      popular: false
 
 # Plugins
 gems:
