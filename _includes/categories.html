@@ -1,0 +1,6 @@
+<div class ="list-cat">
+    <h1 class="page-heading">Categories</h1>
+    {% for tag in site.categories %} 
+      <a href="/categories/{{ tag[0] }}">{{ tag[0] | capitalize }}</a><br/>
+    {% endfor %}
+</div>

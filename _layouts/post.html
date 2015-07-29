@@ -16,10 +16,16 @@ layout: default
 	</header>
 
 	<div class="wrapper">
-		<article class="post-content">
-			<p class="post-meta">Written by {{ site.author }} on {{ page.date | date: "%b %-d, %Y" }}{% if page.meta %} • {{ page.meta }}{% endif %}</p>
-			{{ content }}
-		</article>
+		<section>
+			<article class="post-content">
+				<p class="post-meta">Written by {{ site.author }} on {{ page.date | date: "%b %-d, %Y" }}{% if page.meta %} • {{ page.meta }}{% endif %}</p>
+				{{ content }}
+			</article>
+		</section>
+
+		<aside>
+			{% include categories.html %}
+		</aside>
 	</div>
 
 </div>

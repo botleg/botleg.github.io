@@ -5,20 +5,26 @@ layout: default
 <div class="home">
 
 	<div class="wrapper">
-		<h1 class="page-heading">Latest Stories</h1>
-		
-		<ul class="post-list">
-			{% for post in site.posts %}
-			{% if post.popular == false %}
-			<li>
-				<a class="post-link" href="{{ post.url | prepend: site.baseurl }}">{{ post.title }}</a><span class="post-meta">{{ post.date | date: "%b %-d, %Y" }}</span>
-				<p>{{ post.summary }}</p>
-			</li>
-			{% endif %}
-			{% endfor %}
-		</ul>
-		
-		<p class="rss-subscribe">subscribe <a href="{{ "/feed" | prepend: site.baseurl }}">via RSS</a></p>
+		<section>
+			<h1 class="page-heading">Latest Stories</h1>
+			
+			<ul class="post-list">
+				{% for post in site.posts %}
+				{% if post.popular == false %}
+				<li>
+					<a class="post-link" href="{{ post.url | prepend: site.baseurl }}">{{ post.title }}</a><span class="post-meta">{{ post.date | date: "%b %-d, %Y" }}</span>
+					<p>{{ post.summary }}</p>
+				</li>
+				{% endif %}
+				{% endfor %}
+			</ul>
+			
+			<p class="rss-subscribe">subscribe <a href="{{ "/feed" | prepend: site.baseurl }}">via RSS</a></p>
+		</section>
+
+		<aside>
+			{% include categories.html %}
+		</aside>
 	</div>
 
 </div>
