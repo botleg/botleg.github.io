@@ -169,6 +169,11 @@ pre {
         padding: 0 $spacing-unit/4;
     }
 
+    @include media($large) {
+        @include outer-container(1366px);
+        padding: 0 $spacing-unit/4;
+    }
+
     section {
         @include media($medium) {
             @include span-columns(3 of 4);

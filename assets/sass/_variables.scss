@@ -21,3 +21,4 @@ $grey-color-dark:  darken($grey-color, 25%);
 $narrow: new-breakpoint(min-width 400px);
 $small: new-breakpoint(min-width 650px);
 $medium: new-breakpoint(min-width 960px);
+$large: new-breakpoint(min-width 1500px);
