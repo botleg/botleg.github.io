@@ -183,6 +183,8 @@ pre {
     aside {
         @include media($medium) {
             @include span-columns(1 of 4);
+            position: sticky;
+            top: 0;
         }
     }
 }
