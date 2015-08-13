@@ -1,10 +1,10 @@
 ---
+summary: Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
 layout: post
 title:  Welcome to Jekyll and all you people!
 date:   2015-05-18 23:39:42
 gh: https://github.com/botleg/botleg.github.io
 demo: http://botleg.com
-summary: Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
 categories: jekyll
 popular: false
 tags: markdown jekyll

@@ -1,10 +1,10 @@
 ---
+summary: Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
 layout: post
 title:  Second Post!
 date:   2015-07-18 23:39:42
 gh: https://github.com/botleg/botleg.github.io
 demo: http://botleg.com
-summary: Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
 categories: another
 tags: markdown
 ---
