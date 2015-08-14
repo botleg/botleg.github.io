@@ -7,7 +7,7 @@ baseurl: "" # the subpath of your site, e.g. /blog/
 url: "http://botleg.com" # the base hostname & protocol for your site
 github_username:  botleg
 permalink: /stories/:categories/:title
-exclude: [config.rb, Gemfile, Gemfile.lock, Rakefile, assets/sass, assets/js]
+exclude: [config.rb, Gemfile, Gemfile.lock, Rakefile, assets/sass]
 
 # Build settings
 markdown: redcarpet
@@ -31,7 +31,7 @@ gems:
 
 # Plugin: jekyll-assets
 assets:
-  dirname: assets
+  dirname: assets/js
   sources:
     - assets/js
   js_compressor: uglifier

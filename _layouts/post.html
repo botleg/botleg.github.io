@@ -1,5 +1,6 @@
 ---
 layout: default
+type: post
 ---
 <div class="post">
 
@@ -26,6 +27,7 @@ layout: default
 		<aside>
 			{% include categories.html %}
 			{% include related.html %}
+			<p class="rss-subscribe">subscribe <a href="{{ "/feed" | prepend: site.baseurl }}">via RSS</a></p>
 			<a href="#">Scroll to Top</a>
 		</aside>
 	</div>

@@ -1,19 +1,19 @@
 ---
 layout: default
-type: home
+type: search
 ---
 
 <div class="home">
 
 	<div class="wrapper">
 		<section>
-			<h1 class="page-heading">Latest Stories</h1>
+			<h1 class="page-heading">Search results for '<span id="query"></span>'</h1>
 			
 			<ul class="post-list">
 				{% for post in site.posts %}
 				{% if post.popular == false %}
 				<li>
-					<a class="post-link" href="{{ post.url | prepend: site.baseurl }}">{{ post.title }}</a><span class="post-meta">{{ post.date | date: "%b %-d, %Y" }}</span>
+					<a class="post-link" href="{{ post.url | prepend: site.baseurl }}">{{ post.title }}</a>
 					<p>{{ post.summary }}</p>
 				</li>
 				{% endif %}
@@ -23,6 +23,7 @@ type: home
 
 		<aside>
 			{% include categories.html %}
+			{% include latest.html %}
 			<p class="rss-subscribe">subscribe <a href="{{ "/feed" | prepend: site.baseurl }}">via RSS</a></p>
 		</aside>
 	</div>
