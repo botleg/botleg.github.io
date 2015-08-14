@@ -6,7 +6,7 @@ description: Hi, botleg is a blog where you can find tutorials and techniques in
 baseurl: "" # the subpath of your site, e.g. /blog/
 url: "http://botleg.com" # the base hostname & protocol for your site
 github_username:  botleg
-permalink: /stories/:categories/:title
+permalink: /stories/:title
 exclude: [config.rb, Gemfile, Gemfile.lock, Rakefile, assets/sass]
 
 # Build settings

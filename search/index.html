@@ -9,15 +9,8 @@ type: search
 		<section>
 			<h1 class="page-heading">Search results for '<span id="query"></span>'</h1>
 			
-			<ul class="post-list">
-				{% for post in site.posts %}
-				{% if post.popular == false %}
-				<li>
-					<a class="post-link" href="{{ post.url | prepend: site.baseurl }}">{{ post.title }}</a>
-					<p>{{ post.summary }}</p>
-				</li>
-				{% endif %}
-				{% endfor %}
+			<ul class="post-list" id="search-list">
+				<span class="text">Loading results...</span>
 			</ul>
 		</section>
 
