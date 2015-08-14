@@ -12,14 +12,14 @@ function searchFrm (e) {
 	}
 }
 
-function render (results) {
-	if (!results.length) {
+function render (res) {
+	if (!res.total) {
 		list.innerHTML = '<span class="text">Sorry, No results.</span>';
 		return;
 	}
 	list.innerHTML = "";
-	for (var i=0; i<results.length; i++) {
-		list.innerHTML += '<li><a class="post-link" href="/stories/'+results[i].id+'">'+results[i].title+'</a><p>'+results[i].summary+'</p></li>';
+	for (var i=0; i<res.results.length; i++) {
+		list.innerHTML += '<li><a class="post-link" href="/stories/'+res.results[i].id+'">'+res.results[i].title+'</a><p>'+res.results[i].summary+'</p></li>';
 	}
 }
 
