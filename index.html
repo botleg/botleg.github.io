@@ -10,15 +10,28 @@ type: home
 			<h1 class="page-heading">Latest Stories</h1>
 			
 			<ul class="post-list">
-				{% for post in site.posts %}
-				{% if post.popular == false %}
+				{% for post in paginator.posts %}
 				<li>
 					<a class="post-link" href="{{ post.url | prepend: site.baseurl }}">{{ post.title }}</a><span class="post-meta">{{ post.date | date: "%b %-d, %Y" }}</span>
 					<p>{{ post.summary }}</p>
 				</li>
-				{% endif %}
 				{% endfor %}
 			</ul>
+
+			<div class="pagination">
+				{% if paginator.total_pages > 1 %}
+					{% if paginator.previous_page %}
+					<a href="{{ paginator.previous_page_path | replace: 'index.html', '/' | prepend: site.baseurl | replace: '//', '/' }}" class="page-button previous active">Previous Page</a>
+					{% else %}
+					<span class="page-button previous">Previous Page</span>
+					{% endif %}
+					{% if paginator.next_page %}
+					<a href="{{ paginator.next_page_path }}" class="page-button next active">Next Page</a>
+					{% else %}
+					<span class="page-button next">Next Page</span>
+					{% endif %}
+				{% endif %}
+			</div>
 		</section>
 
 		<aside>
