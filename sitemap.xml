@@ -12,12 +12,15 @@
     <loc>http://botleg.com/404.html</loc>
   </url>
   <url>
-    <loc>http://botleg.com/about/</loc>
+    <loc>http://botleg.com/search/</loc>
   </url>
   <url>
     <loc>http://botleg.com/</loc>
   </url>
   <url>
-    <loc>http://botleg.com/search/</loc>
+    <loc>http://botleg.com/categories/jekyll/</loc>
+  </url>
+  <url>
+    <loc>http://botleg.com/categories/another/</loc>
   </url>
 </urlset>
