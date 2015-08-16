@@ -15,7 +15,9 @@ To add new posts, simply add a file in the `_posts` directory that follows the c
 
 Jekyll also offers powerful support for code snippets:
 
-{% highlight ruby linenos %}
+## Code Block
+
+{% highlight ruby %}
 def print_hi(name)
   puts "Hi, #{name}"
 end
@@ -23,7 +25,7 @@ print_hi('Tom')
 #=> prints 'Hi, Tom' to STDOUT.
 {% endhighlight %}
 
-{% include image.html img="assets/images/GitHub-Mark-Light-32px.png" title="Github Logo" caption="Github Logo" url="https://github.com" %}
+{% include image.html img="http://placehold.it/350x350" title="Place Holder" caption="From placehold.it" url="http://botleg.com" %}
 This is the [new link](http://jekyllrb.com)
 
 > This is a blockquote with two paragraphs. Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Aliquam hendrerit mi posuere lectus. Vestibulum enim wisi, viverra nec, fringilla in, laoreet vitae, risus.
