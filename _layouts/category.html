@@ -1,0 +1,30 @@
+---
+layout: default
+type: category
+---
+
+<div class="home">
+
+	<div class="wrapper">
+		<section>
+			<h1 class="page-heading">{{ page.category | capitalize }} Stories</h1>
+			
+			<ul class="post-list">
+				{% for post in site.categories[page.category] %}
+					<li>
+						<a class="post-link" href="{{ post.url | prepend: site.baseurl }}">{{ post.title }}</a><span class="post-meta">{{ post.date | date: "%b %-d, %Y" }}</span>
+						<p>{{ post.summary }}</p>
+					</li>
+				{% endfor %}
+			</ul>
+		</section>
+
+		<aside>
+			{% include categories.html %}
+			{% include latest.html %}
+			<p class="rss-subscribe">subscribe <a href="{{ "/feed" | prepend: site.baseurl }}">via RSS</a></p>
+			<a href="#">Scroll to Top</a>
+		</aside>
+	</div>
+
+</div>
