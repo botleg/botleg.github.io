@@ -131,12 +131,6 @@
     > li {
         margin-bottom: $spacing-unit;
     }
-
-    .text {
-        color: $grey-color;
-        font-size: 16px;
-        padding-left: 10px;
-    }
 }
 
 .post-meta {
@@ -205,7 +199,7 @@
     &.code { background-image: url('/assets/images/GitHub-Mark-Light-32px.png');}
 }
 
-.post-title, .page-title {
+.post-title {
     color: $grey-color-light;
     font-size: 36px;
     letter-spacing: -1px;
@@ -213,6 +207,17 @@
 
     @include media($small) {
         font-size: 42px;
+    }
+}
+
+.page-title {
+    color: $grey-color-dim;
+    font-size: 32px;
+    letter-spacing: -1px;
+    line-height: 1.2;
+
+    @include media($small) {
+        font-size: 38px;
     }
 }
 
@@ -285,5 +290,38 @@
         &:hover {
             color: darken($brand-color, 50%);
         }
+    }
+}
+
+.comment-block {
+    border-top: 1px solid $grey-color-light;
+    text-align: justify;
+    line-height: 20px;
+    font-size: 16px;
+    padding: 10px 0 5px 5px;
+
+    .text {
+        padding-left: 0;
+    }
+}
+
+#new-comment {
+    padding-left: 5px;
+    margin-bottom: 15px;
+
+    input, textarea {
+        margin-bottom: 5px;
+        width: 80%;
+        font-size: 16px;
+        max-width: 400px;
+    }
+
+    textarea {
+        height: 75px;
+    }
+
+    button {
+        width: 70%;
+        width: 160px;
     }
 }

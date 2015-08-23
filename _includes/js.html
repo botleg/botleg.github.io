@@ -1,5 +1,7 @@
 {% if page.type == 'search' %}
   {% javascript search %}
-{% elsif page.type == 'home' %}
+{% elsif page.type == 'post' %}
+  {% javascript post %}
+{% else page.type == 'home' %}
   {% javascript home %}
 {% endif %}

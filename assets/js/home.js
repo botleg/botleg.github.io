@@ -1,7 +1,7 @@
 var ele = document.getElementById('searchform');
 
 function search(e) {
-	e.preventDefault()
+	e.preventDefault();
 	if (document.getElementById('searchbox').value.trim() !== '') {
 		window.location.href = '/search/#' + document.getElementById('searchbox').value.trim().split(' ').join('+');
 	}

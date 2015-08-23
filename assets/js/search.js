@@ -111,6 +111,6 @@ if(form.addEventListener){
 	prevAct.addEventListener("click", prevPage, false);
 } else if(form.attachEvent){
 	form.attachEvent('onsubmit', searchFrm);
-	nextAct.attachEvent('click', nextPage);
-	prevAct.attachEvent('click', prevPage);
+	nextAct.attachEvent('onclick', nextPage);
+	prevAct.attachEvent('onclick', prevPage);
 }
