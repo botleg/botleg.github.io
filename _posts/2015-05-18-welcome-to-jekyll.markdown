@@ -6,7 +6,6 @@ date:   2015-05-18 23:39:42
 gh: https://github.com/botleg/botleg.github.io
 demo: http://botleg.com
 categories: jekyll
-popular: false
 tags: markdown jekyll
 ---
 You’ll find this post in your `_posts` directory. Go ahead and edit it and re-build the site to see your changes. You can rebuild the site in many different ways, but the most common way is to run `jekyll serve`, which launches a web server and auto-regenerates your site when a file is updated.

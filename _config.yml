@@ -8,6 +8,7 @@ url: "http://botleg.com" # the base hostname & protocol for your site
 github_username:  botleg
 permalink: /stories/:title
 paginate: 10
+pinned: 3
 paginate_path: "/blog/:num"
 exclude: [config.rb, Gemfile, Gemfile.lock, Rakefile, assets/sass]
 
@@ -22,7 +23,6 @@ defaults:
       type: "posts"
     values:
       bg: "background-image:-webkit-radial-gradient(50% 0%, circle, #8abb5d,#42736f);background-image:radial-gradient(circle at 50% 0%, #8abb5d,#42736f);"
-      popular: false
 
 # Plugins
 gems:
