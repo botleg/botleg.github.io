@@ -12,7 +12,8 @@ module Jekyll
           posts << post
         end
       end
-        
+
+      site.config['pinned'] = site.config['pinned'] - pinned        
       site.config['unpinned'] = posts
     end
   end
