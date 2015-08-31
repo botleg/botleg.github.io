@@ -10,6 +10,9 @@
 	{% if page.type == 'home' %}
 		<meta property="fb:admins" content="1138381916" />
 	{% elsif page.type == 'post' %}
+		<meta name="twitter:card" content="summary" />
+		<meta name="twitter:site" content="@HanzelJesheen" />
+		<meta name="twitter:creator" content="@HanzelJesheen" />
 		<meta property="og:url" content="{{ page.url | replace:'index.html','' | prepend: site.baseurl | prepend: site.url }}" />
 		<meta property="og:type" content="article" />
 		<meta property="og:title" content="{{ page.title }}" />
