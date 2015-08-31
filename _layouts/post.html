@@ -2,6 +2,7 @@
 layout: default
 type: post
 ---
+{% assign tags = page.tags %}
 <div class="post">
 
 	<header class="post-header" style="{{ page.bg }}">
@@ -21,10 +22,13 @@ type: post
 			<article class="post-content">
 				<p class="post-meta">Written by {{ site.author }} on {{ page.date | date: "%b %-d, %Y" }}{% if page.meta %} • {{ page.meta }}{% endif %} | 
 				{% for cat in page.categories limit:3 %}
+					{% assign tags = tags | push: cat %}
 					<a href="/categories/{{cat}}">{{cat}}</a>
 				{% endfor %}
 				</p>
 				{{ content }}
+				<p class="post-meta">Tags: {{ tags | array_to_sentence_string }}
+				</p>
 			</article>
 
 			<article class="post-comments" id="comments-box">
