@@ -40,7 +40,12 @@ type: home
 					{% assign limit = 10|minus:site.pinned %}
 					{% for post in site.unpinned limit:limit %}
 					<li>
-						<a class="post-link" href="{{ post.url | prepend: site.baseurl }}">{{ post.title }}</a><span class="post-meta">{{ post.date | date: "%b %-d, %Y" }}</span>
+						<a class="post-link" href="{{ post.url | prepend: site.baseurl }}">{{ post.title }}</a>
+						<span class="post-meta">{{ post.date | date: "%b %-d, %Y" }} | 
+						{% for cat in post.categories limit:3 %}
+							<a href="/categories/{{cat}}">{{cat}}</a>
+						{% endfor %}
+						</span>
 						<p>{{ post.summary }}</p>
 					</li>
 					{% endfor %}

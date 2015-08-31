@@ -19,7 +19,11 @@ type: post
 	<div class="wrapper">
 		<section>
 			<article class="post-content">
-				<p class="post-meta">Written by {{ site.author }} on {{ page.date | date: "%b %-d, %Y" }}{% if page.meta %} • {{ page.meta }}{% endif %}</p>
+				<p class="post-meta">Written by {{ site.author }} on {{ page.date | date: "%b %-d, %Y" }}{% if page.meta %} • {{ page.meta }}{% endif %} | 
+				{% for cat in page.categories limit:3 %}
+					<a href="/categories/{{cat}}">{{cat}}</a>
+				{% endfor %}
+				</p>
 				{{ content }}
 			</article>
 
