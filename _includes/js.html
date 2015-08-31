@@ -9,9 +9,9 @@
 	else window.addEventListener('load', cb);
 </script>
 {% if page.type == 'search' %}
-  {% javascript https://cdn.rawgit.com/botleg/botleg.github.io/4b4b956b22f310266b47309d4e374b569b468c55/assets/js/search.js %}
+  {% javascript search %}
 {% elsif page.type == 'post' %}
-  {% javascript https://cdn.rawgit.com/botleg/botleg.github.io/4b4b956b22f310266b47309d4e374b569b468c55/assets/js/post.js %}
+  {% javascript post %}
 {% else page.type == 'home' %}
-  {% javascript https://cdn.rawgit.com/botleg/botleg.github.io/4b4b956b22f310266b47309d4e374b569b468c55/assets/js/home.js %}
+  {% javascript home %}
 {% endif %}
