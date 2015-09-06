@@ -28,7 +28,7 @@ It is hosted with [OpenShift](https://www.openshift.com/) which provide 3 `gears
 The entry point of the application will be called `index.js` and we will have the file `config.js`, for storing the configuration and `route.js`, for handling Koa routes.
 
 `config.js` contains the appbase.io and openshift configurations. You can hard code the values or use environment variables. Values for `ip` and `port` allows us to test it in local system and to host it in OpenShift. The `baseurl` parameter is required for us to get the raw data of the files in the Jekyll repository. You can obtain it by replacing your github personal or organization name, repository name and branch name in `https://raw.githubusercontent.com/{your-id-here}/{your-repo-name-here}/{your-branch-name-here}/`. The search object in the `search` object in `config.js` is used as search options for Elasticsearch API. More about these options can be found [here](https://www.elastic.co/guide/en/elasticsearch/client/javascript-api/current/api-reference.html#api-search). Feel free to play with these options till the search results become correct for you. The complete code for `config.js` is given below.
-{% highlight javascript linenos %}
+{% highlight javascript   %}
 module.exports = {
   ip: process.env.OPENSHIFT_NODEJS_IP || '127.0.0.1',
   port: process.env.OPENSHIFT_NODEJS_PORT || 8000,
@@ -54,14 +54,14 @@ module.exports = {
 {% endhighlight %}
 
 In `index.js`, we create a Elasticsearch client with out configurations.
-{% highlight javascript linenos %}
+{% highlight javascript %}
 var client = new elasticsearch.Client({
   host: 'https://'+config.username+":"+config.password+"@"+config.hostname,
 });
 {% endhighlight %}
 
 We also setup Koa in `index.js`. It's complete code is given below.
-{% highlight javascript linenos %}
+{% highlight javascript %}
 var app = require('koa')(),
     elasticsearch = require('elasticsearch'),
     config = require('./config');
@@ -94,7 +94,7 @@ app.listen(config.port, config.ip);
 
 
 The magic happens in the `route.js` file. We will start with basic imports. The router objects accepts both Elasticsearch client and configurations object as the parameters. We also create two routes, one returns null and one returns the number of records in the Elasticsearch index.
-{% highlight javascript linenos %}
+{% highlight javascript %}
 var router = require('koa-router')(),
     koaBody = require('koa-body')(),
     request = require('co-request');
@@ -119,17 +119,17 @@ Now, the real problem involved in implementing Elasticsearch with a Jekyll blog 
 Our Elasticsearch index will be the appbase.io appname and type will be called `posts`. The `_id` field for the record will be the posts's filename without the date and extension. There will be 3 fields for each posts, `title` with the post title, `summary` with post summary and `text` with raw contents of the post. We will search in the `title` and `text` fields. 
 
 We will go through each commit in the push event payload. We need to look for three events: add, edit and delete. If a new file is added in the commit, it will be there in `added` object inside the `commit` object. As the posts for a Jekyll blog are inside `_posts` folder, we need check whether `_posts` is there in the file path. If it is there, we will add a new entry to our Elasticsearch index with `id` by removing `_posts`, date and extension from the file path. If `add` is the file path, we can get that with,
-{% highlight javascript linenos %}
+{% highlight javascript %}
 add.substring(18, add.length - 9)
 {% endhighlight %}
 
 The raw data of the file is requested with,
-{% highlight javascript linenos %}
+{% highlight javascript %}
 var text = yield request(config.baseurl + add)
 {% endhighlight %}
 
 We take the summary and title of the new entry from the second and third line of the markdown respectively. This is based on how we write the front-matter in the Jekyll posts. We will get to that later. This can be done with,
-{% highlight javascript linenos %}
+{% highlight javascript %}
 body: {
   title: text.body.split('\n')[2].slice(7),
   summary: text.body.split('\n')[1].slice(9),
@@ -140,7 +140,7 @@ body: {
 The `slice` functions are used above to remove the word `title` from the title itself and so on.
 
 Now, we have seen how to handle the post addition. Similar procedure is done for deletion and modification of the posts. The complete code for `/commit` route can be seen here.
-{% highlight javascript linenos %}
+{% highlight javascript %}
 router.post('/commit', koaBody, function*(next) {
   if (typeof this.request.body.commits !== 'undefined') {
     for (var commit of this.request.body.commits) {
@@ -195,7 +195,7 @@ router.post('/commit', koaBody, function*(next) {
 {% endhighlight %}
 
 Now that we have the indexing ready, we can add the search route. We use the search object in `config.js` as search option and use request parameter as the query. We use the Elasticsearch client to search and we list of the search results with the id, title and summary fields. We will also provide the required headers. The `search/:q` route is given below.
-{% highlight javascript linenos %}
+{% highlight javascript %}
 router.get('/search/:q', function*(next) {
   config.search.query.multi_match.query = this.params.q;
   var result = [];
@@ -218,7 +218,7 @@ router.get('/search/:q', function*(next) {
 {% endhighlight %}
 
 That's all there is for `route.js` and its complete code is given below.
-{% highlight javascript linenos %}
+{% highlight javascript %}
 var router = require('koa-router')(),
     koaBody = require('koa-body')(),
     request = require('co-request');
@@ -324,7 +324,7 @@ jekyll new . -f
 {% endhighlight %}
 
 Once this blog is scaffolded by Jekyll, we can put some dummy posts for test purpose. The front-matter the blog must be in the given format itself. The second line contains `summary:` followed by a single space and the post summary. The third line contains `title:` followed by a single space and the post title. The rest can be in any order and format. This is done as we are taking the summary and title for the Elasticsearch index from the second and third line of the front-matter respectively. The front-matter of a post can look like this.
-{% highlight javascript linenos %}
+{% highlight javascript %}
 ---
 summary: Far far away, behind the word mountains, far from the countries Vokalia and Consonantia, there live the blind texts
 title: Far Far Away
@@ -335,7 +335,7 @@ categories: jekyll update
 {% endhighlight %}
 
 To add search box and button to all pages, we add the following to `_includes/header.html`. The styling is up to you.
-{% highlight html linenos %}
+{% highlight html %}
 <form class="search" id="searchform">
   <input type="text" class="searchbox" id="searchbox" />
   <input type="submit" value="Search">
@@ -343,7 +343,7 @@ To add search box and button to all pages, we add the following to `_includes/he
 {% endhighlight %}
 
 We also need a page to show the search results. So, add a new page `search/index.html` with the following contents,
-{% highlight html linenos %}
+{% highlight html %}
 ---
 layout: default
 type: search
@@ -368,7 +368,7 @@ type: search
 {% endhighlight %}
 
 Most of the work here is done in javascript, let's create two javascript files in the folder `js` folder. We create `search.js` for the search page and `home.js` for all other pages. To attach these javascript files to the corresponding files, add the following to the end of `_includes/footer.html`,
-{% highlight html linenos %}
+{% highlight html %}
 {{ "{% if page.type == 'search' " }}%}
   <script src="/js/search.js" type="text/javascript"></script>
 {{ "{% else " }}%}
@@ -377,7 +377,7 @@ Most of the work here is done in javascript, let's create two javascript files i
 {% endhighlight %}
 
 In `home.js`, we need to handle the search form submit. Once form is submitted with something in the searchbox, we can send then to `/search#query`, where `query` is the searched query. So, `home.js` will be as below. So if the webpage is `botleg.com` and `query` is `test`, the resulting page will be `botleg.com/search/#test`
-{% highlight javascript linenos %}
+{% highlight javascript %}
 var form = document.getElementById('searchform');
 
 function search(e) {
@@ -395,12 +395,12 @@ if (form.addEventListener) {
 {% endhighlight %}
 
 In `search.js`, we can read the search query with,
-{% highlight javascript linenos %}
+{% highlight javascript %}
 location.hash.slice(1)
 {% endhighlight %}
 
 We will send a `GET` request to the `/search/:q` with AJAX, where `:q` is replaced by the search query and its response contains the search results. These are then injected into the web page. You can search for another query and a new request will be sent. Complete code for `search.js` is given below.
-{% highlight javascript linenos %}
+{% highlight javascript %}
 var form = document.getElementById('searchform'),
     box = document.getElementById('searchbox'),
     span = document.getElementById('query'),
