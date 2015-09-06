@@ -1,5 +1,5 @@
 ---
-summary: Botleg is a blog where you can find tutorials and techniques in web development, big data analysis, databases, cloud computing and anything related to technology.
+summary: Elaticsearch is a database used for full-text searching and Jekyll is a static blog generator. In this article, we will see how to implement Elaticsearch based searching to a Jekyll blog.
 title: Implement Elaticsearch in Jekyll blog
 layout: post
 gh: https://github.com/botleg/elasticsearch-jekyll/
