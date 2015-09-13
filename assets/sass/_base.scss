@@ -53,7 +53,22 @@ img {
     }
 }
 
+.center-image {
+    display: block;
+    margin: 0 auto;
+    max-width: 100%;
+    vertical-align: middle;
+}
 
+.image-caption {
+    display: block;
+    margin: 0 auto;
+    max-width: 100%;
+    text-align: center;
+    color: $grey-color;
+    font-size: $small-font-size;
+    margin-top: $spacing-unit / 6;
+}
 
 /**
  * Figures
