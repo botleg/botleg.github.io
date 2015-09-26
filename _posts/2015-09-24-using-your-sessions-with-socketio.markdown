@@ -7,7 +7,7 @@ demo: http://socketio.sessions.botleg.com/
 categories: Node.js
 bg: "background:#185a9d;background: -webkit-linear-gradient(90deg, #43cea2 10%, #185a9d 90%);background:-moz-linear-gradient(90deg, #43cea2 10%, #185a9d 90%);background:-ms-linear-gradient(90deg, #43cea2 10%, #185a9d 90%);background:-o-linear-gradient(90deg, #43cea2 10%, #185a9d 90%);background:linear-gradient(90deg, #43cea2 10%, #185a9d 90%);"
 date:   2015-09-24 22:00:00
-tags: socket.io session koa cookie web-sockets
+tags: socket.io session koa cookie web-sockets popular
 ---
 > Socket.IO enables real-time bidirectional event-based communication.
 

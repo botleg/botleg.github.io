@@ -5,7 +5,7 @@ layout: post
 gh: https://github.com/botleg/botleg.github.io
 demo: http://botleg.com
 date:   2015-08-28 21:00:00
-bg: "background-image:-webkit-radial-gradient(50% 0%, circle, #8abb5d,#42736f);background-image:radial-gradient(circle at 50% 0%, #8abb5d,#42736f);"
+bg: "background:#5C258D;background:-webkit-linear-gradient(90deg, #5C258D 10%, #4389A2 90%);background:-moz-linear-gradient(90deg, #5C258D 10%, #4389A2 90%);background:-ms-linear-gradient(90deg, #5C258D 10%, #4389A2 90%);background:-o-linear-gradient(90deg, #5C258D 10%, #4389A2 90%);background:linear-gradient(90deg, #5C258D 10%, #4389A2 90%);"
 categories: about
 tags: markdown jekyll
 ---

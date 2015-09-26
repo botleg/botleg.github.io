@@ -5,9 +5,9 @@ layout: post
 gh: https://github.com/botleg/openshift-travis-wercker
 demo: http://deploy.openshift.botleg.com/
 categories: cloud
-bg: "background:#5C258D;background:-webkit-linear-gradient(90deg, #5C258D 10%, #4389A2 90%);background:-moz-linear-gradient(90deg, #5C258D 10%, #4389A2 90%);background:-ms-linear-gradient(90deg, #5C258D 10%, #4389A2 90%);background:-o-linear-gradient(90deg, #5C258D 10%, #4389A2 90%);background:linear-gradient(90deg, #5C258D 10%, #4389A2 90%);"
+bg: "background:#8abb5d;background-image:-webkit-radial-gradient(50% 0%, circle, #8abb5d,#42736f);background-image:radial-gradient(circle at 50% 0%, #8abb5d,#42736f);"
 date:   2015-09-13 10:00:00
-tags: Integration TravisCI Wercker OpenShift Mocha deploy build
+tags: Integration TravisCI Wercker OpenShift Mocha deploy build popular
 ---
 [Continuous Integration](https://en.wikipedia.org/wiki/Continuous_integration) is the technique where certain tasks are done automatically with each commit. These involve building, running unit tests and deploying. [TravisCI](https://travis-ci.org/) and [Wercker](http://wercker.com/) are two popular hosted continuous integrations tools available. In this article, we will compare these two and then we will see how to build and deploy a Node.js application to OpenShift.
 

@@ -169,14 +169,20 @@
     height: 300px;
     margin-bottom: $spacing-unit/2;
 
-    p {
+    .header-content {
+        text-align: center;
         max-width: 600px;
-        padding: 0 5px;
-    }
-}
 
-.header-content {
-    text-align: center;
+        p {
+            display: none;
+
+            @include media($small) {
+                display: block;
+                padding: 0 5px;
+            }        
+        }
+    }
+
 }
 
 .icon {
