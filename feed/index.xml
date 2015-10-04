@@ -5,9 +5,113 @@
     <description>Hi, botleg is a blog where you can find tutorials and techniques in web development, big data analysis, databases, cloud computing and anything related to technology.</description>
     <link>http://botleg.com/</link>
     <atom:link href="http://botleg.com/feed" rel="self" type="application/rss+xml"/>
-    <pubDate>Sat, 26 Sep 2015 10:36:00 +0530</pubDate>
-    <lastBuildDate>Sat, 26 Sep 2015 10:36:00 +0530</lastBuildDate>
+    <pubDate>Sun, 04 Oct 2015 23:02:22 +0530</pubDate>
+    <lastBuildDate>Sun, 04 Oct 2015 23:02:22 +0530</lastBuildDate>
     <generator>Jekyll v2.5.3</generator>
+    
+      <item>
+        <title>Generators in JavaScript and Python</title>
+        <author><name>Hanzel Jesheen</name></author>
+        <description>&lt;p&gt;With the introduction of JavaScript ES6 or ES2015, we got a whole lot of new features for the language. Among those, &lt;code&gt;generator&lt;/code&gt; sure is an interesting one. Generator is basically a function which can be paused and resumed as we need it. The state of the generator stays constant while it’s paused. You can read more about this &lt;a href=&quot;https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Iterators_and_Generators#Generators&quot;&gt;here&lt;/a&gt;. In this article, we are going to compare generators in JavaScript to the ones in a language that has been supporting it for a long time now, Python.&lt;/p&gt;
+
+&lt;p&gt;We will see how to create an &lt;code&gt;iterator&lt;/code&gt; with generator function. Iterator contains a set of values in a sequence. We can go through the elements in an iterator with a &lt;code&gt;for&lt;/code&gt; loop. For this example, we will create an iterator for &lt;code&gt;Fibonacci Numbers&lt;/code&gt;.&lt;/p&gt;
+
+&lt;h2 id=&quot;generator&quot;&gt;Generator&lt;/h2&gt;
+&lt;p&gt;Generator is just another function. The only difference is that it can be paused and resumed. While the normal functions use &lt;code&gt;return&lt;/code&gt; to give back a value and stop its execution, a generator function uses &lt;code&gt;yield&lt;/code&gt; to give a value back and pause the function. We can resume the function with the &lt;code&gt;next()&lt;/code&gt; command and the function will give back the value in the next yield. We can also go through the values in a generator with a loop. The generator functions can also have a &lt;code&gt;return&lt;/code&gt; statement which can be used to terminate its execution.&lt;/p&gt;
+
+&lt;h2 id=&quot;javascript&quot;&gt;JavaScript&lt;/h2&gt;
+&lt;p&gt;In JavaScript, a generator definition contains an &lt;code&gt;*&lt;/code&gt;. It could also have a yield statement.&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-javascript&quot; data-lang=&quot;javascript&quot;&gt;&lt;span class=&quot;kd&quot;&gt;function&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;*&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;getFibonacci&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;c1&quot;&gt;//yield something;&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;In the &lt;a href=&quot;https://en.wikipedia.org/wiki/Fibonacci_number&quot;&gt;Fibonacci series&lt;/a&gt;, the first two numbers are 0 and 1 and the rest is the sum of previous two values. So, it goes like &lt;code&gt;0, 1, 1, 2, 3, 5, 8, 13, 21, ...&lt;/code&gt;. The code for getting Fibonacci Numbers less than 100 is this.&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-javascript&quot; data-lang=&quot;javascript&quot;&gt;&lt;span class=&quot;kd&quot;&gt;function&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;*&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;getFibonacci&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;yield&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;a&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+  &lt;span class=&quot;nx&quot;&gt;b&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+  
+  &lt;span class=&quot;k&quot;&gt;while&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kc&quot;&gt;true&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;yield&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;b&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;nx&quot;&gt;b&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;a&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;b&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;nx&quot;&gt;a&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;b&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;a&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+  &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+&lt;span class=&quot;k&quot;&gt;for&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;num&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;of&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;getFibonacci&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;())&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;num&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;100&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;break&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+  &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+  &lt;span class=&quot;nx&quot;&gt;console&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;log&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;num&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;Note that ES6 is required for running this code. We first define the generator function &lt;code&gt;getFibonacci()&lt;/code&gt; with the &lt;code&gt;*&lt;/code&gt;. The first value in the sequence is &lt;code&gt;0&lt;/code&gt;, so we have to return that with an yield. We can use an expression with yield statement and the result of the expression is send out with yield. Now we store the previous two values in &lt;code&gt;a&lt;/code&gt; and &lt;code&gt;b&lt;/code&gt;. The starting values of &lt;code&gt;a&lt;/code&gt; and &lt;code&gt;b&lt;/code&gt; are &lt;code&gt;0&lt;/code&gt; and &lt;code&gt;1&lt;/code&gt; respectively, the first two values in the sequence. We can assign value to &lt;code&gt;a&lt;/code&gt; and yield it in a single statement.&lt;/p&gt;
+
+&lt;p&gt;We start an infinite &lt;code&gt;while&lt;/code&gt; loop. We now yield the value in &lt;code&gt;b&lt;/code&gt;, which is now the second number in the sequence. Now we set &lt;code&gt;b&lt;/code&gt; to the sum of &lt;code&gt;a&lt;/code&gt; and &lt;code&gt;b&lt;/code&gt; and set &lt;code&gt;a&lt;/code&gt; as the previous value of &lt;code&gt;b&lt;/code&gt;. This can be done simply by,&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-javascript&quot; data-lang=&quot;javascript&quot;&gt;&lt;span class=&quot;nx&quot;&gt;b&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;a&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;b&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;nx&quot;&gt;a&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;b&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;a&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;Now, &lt;code&gt;b&lt;/code&gt; will contain the third number in the sequence, which is then given out with yield. This goes on and on with &lt;code&gt;b&lt;/code&gt; always having the next number in the sequence.&lt;/p&gt;
+
+&lt;p&gt;This generator acts as an iterator factory for Fibonacci Numbers. We can loop through this iterator with the &lt;code&gt;for .. of&lt;/code&gt; loop. As this gives all the Fibonacci Numbers till infinity, we need a &lt;code&gt;break&lt;/code&gt; condition. Here, we take the Fibonacci Numbers less than 100 and logs it.&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-javascript&quot; data-lang=&quot;javascript&quot;&gt;&lt;span class=&quot;k&quot;&gt;for&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;num&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;of&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;getFibonacci&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;())&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;num&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;100&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;break&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+  &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+  &lt;span class=&quot;nx&quot;&gt;console&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;log&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;num&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;h2 id=&quot;python&quot;&gt;Python&lt;/h2&gt;
+&lt;p&gt;The python implementation of this same problem is very similar. The code for the solution is this.&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-python&quot; data-lang=&quot;python&quot;&gt;&lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;getFibonacci&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;():&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;yield&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;
+  &lt;span class=&quot;n&quot;&gt;a&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;b&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;
+
+  &lt;span class=&quot;k&quot;&gt;while&lt;/span&gt; &lt;span class=&quot;bp&quot;&gt;True&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;yield&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;b&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;b&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;a&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;b&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;a&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;b&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;a&lt;/span&gt;
+
+&lt;span class=&quot;k&quot;&gt;for&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;num&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;in&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;getFibonacci&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;():&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;num&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;100&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;break&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;print&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;num&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;We start with the &lt;code&gt;getFibonacci()&lt;/code&gt; generator function. In python, there is no difference between generators and normal function definition. The only difference is in the appearence of the &lt;code&gt;yield&lt;/code&gt; keyword. We can’t use expressions with yield in Python, as we have done in JavaScript. So, we will yield the first number in the sequence &lt;code&gt;0&lt;/code&gt; and then assign the initial values to &lt;code&gt;a&lt;/code&gt; and &lt;code&gt;b&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;As before, we than have an infinite loop which yields the next value in the sequence and calculates new values of &lt;code&gt;a&lt;/code&gt; and &lt;code&gt;b&lt;/code&gt;. This is same as in JavaScript.&lt;/p&gt;
+
+&lt;p&gt;To loop through the numbers in the &lt;code&gt;getFibonacci()&lt;/code&gt; iterator, we can use &lt;code&gt;for .. in&lt;/code&gt; loop. The rest is same as in the case of JavaScript.&lt;/p&gt;
+
+&lt;h2 id=&quot;conclusion&quot;&gt;Conclusion&lt;/h2&gt;
+&lt;p&gt;Except for some subtle differences, the implementation of generators in JavaScript and Python are really similar. With ES6, we can program in JavaScript as we do it in Java, C, or Python.&lt;/p&gt;
+</description>
+        <pubDate>Mon, 05 Oct 2015 04:30:00 +0530</pubDate>
+        <link>http://botleg.com/stories/generators-in-javascript-and-python</link>
+        <guid isPermaLink="true">http://botleg.com/stories/generators-in-javascript-and-python</guid>
+        
+        <category>python</category>
+        
+        <category>generator</category>
+        
+        <category>iterator</category>
+        
+        <category>es6</category>
+        
+        <category>es2015</category>
+        
+        <category>fibonacci</category>
+        
+        <category>yield</category>
+        
+        
+        <category>javascript</category>
+        
+      </item>
     
       <item>
         <title>Line numbers in Jekyll code blocks</title>

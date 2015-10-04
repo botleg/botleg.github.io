@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9 http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd" xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
+    <loc>http://botleg.com/stories/generators-in-javascript-and-python</loc>
+    <lastmod>2015-10-05T04:30:00+05:30</lastmod>
+  </url>
+  <url>
     <loc>http://botleg.com/stories/line-numbers-in-jekyll-code-blocks</loc>
     <lastmod>2015-09-27T16:30:00+05:30</lastmod>
   </url>
@@ -40,5 +44,8 @@
   </url>
   <url>
     <loc>http://botleg.com/categories/node.js/</loc>
+  </url>
+  <url>
+    <loc>http://botleg.com/categories/javascript/</loc>
   </url>
 </urlset>
