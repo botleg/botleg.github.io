@@ -5,9 +5,102 @@
     <description>Hi, botleg is a blog where you can find tutorials and techniques in web development, big data analysis, databases, cloud computing and anything related to technology.</description>
     <link>http://botleg.com/</link>
     <atom:link href="http://botleg.com/feed" rel="self" type="application/rss+xml"/>
-    <pubDate>Sun, 04 Oct 2015 23:02:22 +0530</pubDate>
-    <lastBuildDate>Sun, 04 Oct 2015 23:02:22 +0530</lastBuildDate>
+    <pubDate>Tue, 01 Dec 2015 00:59:15 +0530</pubDate>
+    <lastBuildDate>Tue, 01 Dec 2015 00:59:15 +0530</lastBuildDate>
     <generator>Jekyll v2.5.3</generator>
+    
+      <item>
+        <title>Tricks with SSH</title>
+        <author><name>Hanzel Jesheen</name></author>
+        <description>&lt;p&gt;Almost all developers have some sort of experience working with &lt;code&gt;Secure Shell&lt;/code&gt; or &lt;code&gt;SSH&lt;/code&gt;. It allows you to connect to a remote location and communicate securely. In this article, I’ll share couple of tips that will make working with SSH easier.&lt;/p&gt;
+
+&lt;h2 id=&quot;ssh-config&quot;&gt;SSH Config&lt;/h2&gt;
+&lt;p&gt;The basic way of connecting to a remote server is,&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;ssh user@ip -p 22&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;It is not easy to remember a bunch of ip addresses and type those in everytime you want to connect to a remote server. SSH allows you to give alias to each connection configuration including hostname, username, port, etc. This is done with &lt;code&gt;SSH Config&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;Add a new file, &lt;code&gt;~/.ssh/config&lt;/code&gt;. For each connection, add this block to the config file we just created.&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;Host &amp;lt;&lt;span class=&quot;nb&quot;&gt;alias&lt;/span&gt;&amp;gt;
+    HostName &amp;lt;host-address&amp;gt;
+    Port &amp;lt;port&amp;gt;
+    User &amp;lt;username&amp;gt;
+    IdentityFile &amp;lt;public-key-file&amp;gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;The &lt;code&gt;IdentityFile&lt;/code&gt; field is optional, and it contains the path of the public key used for identity. An example of this block is given below.&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;Host myremote
+    HostName 101.102.103.104
+    Port 22
+    User root
+    IdentityFile ~/.ssh/id_rsa.pub&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;We can log into this remote server with the command,&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;ssh myremote&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;If you have copied your key to remote as an authorized key with &lt;code&gt;ssh-copy-id&lt;/code&gt;, you will be connected to the remote server. Even tab completion works for the alias names. Pretty convenient, right?&lt;/p&gt;
+
+&lt;h2 id=&quot;local-port-forward&quot;&gt;Local Port Forward&lt;/h2&gt;
+&lt;p&gt;SSH can be used to forward ports from a remote server to local system and vice-versa. Now, we’ll talk only about the former, also called local port forwarding. It is generally used to access blocked websites in a network. You can forward any of your local ports to a blocked site, and access it with the assigned local port.&lt;/p&gt;
+
+&lt;p&gt;For instance, you can forward your local port 5000 to &lt;a href=&quot;http://youtube.com&quot;&gt;YouTube&lt;/a&gt; with,&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;ssh -L 5000:youtube.com:80 user@host&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;Now, you can access YouTube at &lt;a href=&quot;http://localhost:5000&quot;&gt;localhost:5000&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;There are a couple of other use cases for local port forwarding. The main one is to access services for local development. Most database in the network will only allow access to localhost and remote access will be blocked by the firewall. While it’s good for security, it would make the database inaccessible for local development.&lt;/p&gt;
+
+&lt;p&gt;We can use local port forwarding to solve this issue. Let’s assume, I’ve a &lt;a href=&quot;http://redis.io/&quot;&gt;Redis&lt;/a&gt; database running in &lt;code&gt;120.10.20.30:16379&lt;/code&gt;. If I have SSH access to this remote server, I can forward the remote port &lt;code&gt;16379&lt;/code&gt; to any of my local port.&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;ssh -L 0.0.0.0:5866:120.10.20.30:16379 user@host -Nf&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;We will go through all the different things in this command. The &lt;code&gt;-L&lt;/code&gt; flag for the SSH command tells that it’s a local port forward command.&lt;/p&gt;
+
+&lt;p&gt;The basic format of local port forward is,&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;&amp;lt;&lt;span class=&quot;nb&quot;&gt;local&lt;/span&gt;-ip&amp;gt;:&amp;lt;&lt;span class=&quot;nb&quot;&gt;local&lt;/span&gt;-port&amp;gt;:&amp;lt;remote-ip&amp;gt;:&amp;lt;remote-port&amp;gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;Here, the local ip is &lt;code&gt;0.0.0.0&lt;/code&gt;. What it does is that, it listens to all hosts in the network. So, any host in your network can access the Redis database with your ip. The local port is &lt;code&gt;5866&lt;/code&gt;. If your local ip address is &lt;code&gt;10.18.0.13&lt;/code&gt;, then Redis database can be accessed by anybody in your network at &lt;code&gt;10.18.0.13:5866&lt;/code&gt; and for you, it’s &lt;code&gt;localhost:5866&lt;/code&gt;. If your avoid the &lt;code&gt;local-ip&lt;/code&gt; part, only you can access the database.&lt;/p&gt;
+
+&lt;p&gt;The &lt;code&gt;remote-port&lt;/code&gt; and &lt;code&gt;remote-ip&lt;/code&gt; is that of the service, we need to forward. In the case, we are forwarding the database in &lt;code&gt;120.10.20.30:16379&lt;/code&gt;. Now we need to provide the user and host of the remote SSH login. As discussed above, we can replace this with an alias in SSH config.&lt;/p&gt;
+
+&lt;p&gt;There are two more flags in the command and these are very important. &lt;code&gt;-N&lt;/code&gt; flag asks the SSH to NOT execute the remote command. This prevents the remote shell from coming up. ‘-f’ flag makes the SSH to go into the background and excute the command like a daemon. Together, we can the flag &lt;code&gt;-Nf&lt;/code&gt;.&lt;/p&gt;
+
+&lt;h2 id=&quot;conclusion&quot;&gt;Conclusion&lt;/h2&gt;
+&lt;p&gt;In this article, I’ve shared two SSH techniques that saved me a lot of time and helped me with tricky situations. The first one involves using a config file for SSH and other one involves local port forwarding.&lt;/p&gt;
+</description>
+        <pubDate>Tue, 01 Dec 2015 06:30:00 +0530</pubDate>
+        <link>http://botleg.com/stories/tricks-with-ssh</link>
+        <guid isPermaLink="true">http://botleg.com/stories/tricks-with-ssh</guid>
+        
+        <category>SSH</category>
+        
+        <category>secure</category>
+        
+        <category>shell</category>
+        
+        <category>config</category>
+        
+        <category>remote</category>
+        
+        <category>local</category>
+        
+        <category>port</category>
+        
+        <category>ip</category>
+        
+        <category>alias</category>
+        
+        <category>forward</category>
+        
+        
+        <category>misc</category>
+        
+      </item>
     
       <item>
         <title>Generators in JavaScript and Python</title>
