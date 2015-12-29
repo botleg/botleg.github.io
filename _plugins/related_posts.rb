@@ -26,8 +26,10 @@ module Jekyll
 
       closest = sorted_posts[0..(@amount - 1)]
       html = ''
+
+
       closest.each do |related_post|
-        html << "<a href=#{related_post['url']}>#{related_post['title']}</a><br/>"
+        html << "<a href=#{related_post.url}>#{related_post.data['title']}</a><br/>"
       end
       html << ''
     end
