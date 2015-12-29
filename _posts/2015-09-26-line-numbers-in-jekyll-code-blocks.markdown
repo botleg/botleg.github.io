@@ -89,18 +89,6 @@ The `.linenos` class in `_syntax-highlighting.scss` will now look like this.
 }
 {% endhighlight %}
 
-Now the same code block will look like this.
-{% highlight javascript linenos %}
-var http = require('http');
-
-function handleRequest(request, response) {
-  response.end(`Web server running on Node.js v${process.versions.node}.`);
-}
-
-var server = http.createServer(handleRequest);
-server.listen(8000);
-{% endhighlight %}
-
 Conclusion
 ----------
 By tweaking the `.lineno` class, we can add better looking line numbers in Jekyll code blocks. You can also prevent the line numbers from being selected while selecting the code.
