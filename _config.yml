@@ -11,6 +11,7 @@ paginate: 10
 pinned: 3
 paginate_path: "/blog/:num"
 exclude: [config.rb, Gemfile, Gemfile.lock, Rakefile, assets/sass]
+env: production
 
 # Build settings
 markdown: kramdown
@@ -28,9 +29,4 @@ defaults:
 gems:
   - jekyll-sitemap
   - jekyll-redirect-from
-  - jekyll-minifier
   - jekyll-paginate
-
-Plugin: jekyll-minifier
-jekyll-minifier:
-  exclude: ['*.html', '*.xml', '*.css']
