@@ -1,35 +1,35 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9 http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd" xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>http://botleg.com/stories/share-your-localhost</loc>
+    <loc>http://botleg.com/stories/share-your-localhost/</loc>
     <lastmod>2015-12-06T04:30:00+05:30</lastmod>
   </url>
   <url>
-    <loc>http://botleg.com/stories/tricks-with-ssh</loc>
+    <loc>http://botleg.com/stories/tricks-with-ssh/</loc>
     <lastmod>2015-12-01T06:30:00+05:30</lastmod>
   </url>
   <url>
-    <loc>http://botleg.com/stories/generators-in-javascript-and-python</loc>
+    <loc>http://botleg.com/stories/generators-in-javascript-and-python/</loc>
     <lastmod>2015-10-05T04:30:00+05:30</lastmod>
   </url>
   <url>
-    <loc>http://botleg.com/stories/line-numbers-in-jekyll-code-blocks</loc>
+    <loc>http://botleg.com/stories/line-numbers-in-jekyll-code-blocks/</loc>
     <lastmod>2015-09-27T16:30:00+05:30</lastmod>
   </url>
   <url>
-    <loc>http://botleg.com/stories/using-your-sessions-with-socketio</loc>
+    <loc>http://botleg.com/stories/using-your-sessions-with-socketio/</loc>
     <lastmod>2015-09-25T03:30:00+05:30</lastmod>
   </url>
   <url>
-    <loc>http://botleg.com/stories/build-and-deploy-to-openshift-with-travisci-and-wercker</loc>
+    <loc>http://botleg.com/stories/build-and-deploy-to-openshift-with-travisci-and-wercker/</loc>
     <lastmod>2015-09-13T15:30:00+05:30</lastmod>
   </url>
   <url>
-    <loc>http://botleg.com/stories/implement-elasticsearch-in-jekyll-blog</loc>
+    <loc>http://botleg.com/stories/implement-elasticsearch-in-jekyll-blog/</loc>
     <lastmod>2015-09-06T16:30:00+05:30</lastmod>
   </url>
   <url>
-    <loc>http://botleg.com/stories/hello-world</loc>
+    <loc>http://botleg.com/stories/hello-world/</loc>
     <lastmod>2015-08-29T02:30:00+05:30</lastmod>
   </url>
   <url>
@@ -42,7 +42,7 @@
     <loc>http://botleg.com/</loc>
   </url>
   <url>
-    <loc>http://botleg.com/categories/about/</loc>
+    <loc>http://botleg.com/categories/misc/</loc>
   </url>
   <url>
     <loc>http://botleg.com/categories/jekyll/</loc>
@@ -51,12 +51,33 @@
     <loc>http://botleg.com/categories/cloud/</loc>
   </url>
   <url>
-    <loc>http://botleg.com/categories/node.js/</loc>
+    <loc>http://botleg.com/categories/Node.js/</loc>
   </url>
   <url>
     <loc>http://botleg.com/categories/javascript/</loc>
   </url>
-  <url>
-    <loc>http://botleg.com/categories/misc/</loc>
-  </url>
+    <url>
+      <loc>http://botleg.com/stories/hello-world/</loc>
+    </url>
+    <url>
+      <loc>http://botleg.com/stories/implement-elasticsearch-in-jekyll-blog/</loc>
+    </url>
+    <url>
+      <loc>http://botleg.com/stories/build-and-deploy-to-openshift-with-travisci-and-wercker/</loc>
+    </url>
+    <url>
+      <loc>http://botleg.com/stories/using-your-sessions-with-socketio/</loc>
+    </url>
+    <url>
+      <loc>http://botleg.com/stories/line-numbers-in-jekyll-code-blocks/</loc>
+    </url>
+    <url>
+      <loc>http://botleg.com/stories/generators-in-javascript-and-python/</loc>
+    </url>
+    <url>
+      <loc>http://botleg.com/stories/tricks-with-ssh/</loc>
+    </url>
+    <url>
+      <loc>http://botleg.com/stories/share-your-localhost/</loc>
+    </url>
 </urlset>
