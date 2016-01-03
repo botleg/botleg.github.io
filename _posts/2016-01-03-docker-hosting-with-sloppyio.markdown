@@ -7,7 +7,7 @@ gh: https://github.com/botleg/docker-sloppy
 demo: http://botleg.sloppy.zone
 bg: "background:rgb(155, 89, 182) 25%;background-image:linear-gradient(90deg, rgb(155, 89, 182) 25%, rgb(41, 128, 185) 100%);background-image:-moz-linear-gradient(left, rgb(155, 89, 182) 25%, rgb(41, 128, 185) 100%);background-image:webkit-linear-gradient(left, rgb(155, 89, 182) 25%, rgb(41, 128, 185) 100%);background-image:-o-linear-gradient(left, rgb(155, 89, 182) 25%, rgb(41, 128, 185) 100%);background-image:-ms-linear-gradient(left, rgb(155, 89, 182) 25%, rgb(41, 128, 185) 100%);"
 date:   2016-01-03 16:00:00
-tags: docker hub sloppy.io container node.js redis docker-compose dockerfile sloppy.json
+tags: docker hub sloppy.io container node.js redis docker-compose dockerfile sloppy.json popular
 ---
 [Sloppy.io](http://sloppy.io/) is a new Container as a Service (CaaS) platform that you can use to host Docker images. It is currently in a generous private beta, which provides you with 4GB RAM, 10 containers and 10GB storage for free. You can sign up for this [here](http://sloppy.io/#signup). I received the reply from them within the hour. sloppy.io makes it really easy to host and especially scale docker images.
 
