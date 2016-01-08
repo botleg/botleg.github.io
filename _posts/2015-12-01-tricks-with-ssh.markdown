@@ -23,15 +23,15 @@ Add a new file, `~/.ssh/config`. For each connection, add this block to the conf
     HostName <host-address>
     Port <port>
     User <username>
-    IdentityFile <public-key-file>
+    IdentityFile <private-key-file>
 {% endhighlight %}
-The `IdentityFile` field is optional, and it contains the path of the public key used for identity. An example of this block is given below.
+The `IdentityFile` field is optional, and it contains the path of the private key used for identity. An example of this block is given below.
 {% highlight bash %}
   Host myremote
     HostName 101.102.103.104
     Port 22
     User root
-    IdentityFile ~/.ssh/id_rsa.pub
+    IdentityFile ~/.ssh/myremote.key
 {% endhighlight %}
 We can log into this remote server with the command,
 {% highlight bash %}
