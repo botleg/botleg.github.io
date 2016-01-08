@@ -5,8 +5,8 @@
     <description>Hi, botleg is a blog where you can find tutorials and techniques in web development, big data analysis, databases, cloud computing and anything related to technology.</description>
     <link>http://botleg.com/</link>
     <atom:link href="http://botleg.com/feed" rel="self" type="application/rss+xml"/>
-    <pubDate>Sun, 03 Jan 2016 15:42:04 +0530</pubDate>
-    <lastBuildDate>Sun, 03 Jan 2016 15:42:04 +0530</lastBuildDate>
+    <pubDate>Fri, 08 Jan 2016 23:14:42 +0530</pubDate>
+    <lastBuildDate>Fri, 08 Jan 2016 23:14:42 +0530</lastBuildDate>
     <generator>Jekyll v3.0.1</generator>
     
       <item>
@@ -480,15 +480,15 @@ WORKDIR /&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;app&lt;/span&gt;
     HostName &amp;lt;host-address&amp;gt;
     Port &amp;lt;port&amp;gt;
     User &amp;lt;username&amp;gt;
-    IdentityFile &amp;lt;public-key-file&amp;gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+    IdentityFile &amp;lt;private-key-file&amp;gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
 
-&lt;p&gt;The &lt;code class=&quot;highlighter-rouge&quot;&gt;IdentityFile&lt;/code&gt; field is optional, and it contains the path of the public key used for identity. An example of this block is given below.&lt;/p&gt;
+&lt;p&gt;The &lt;code class=&quot;highlighter-rouge&quot;&gt;IdentityFile&lt;/code&gt; field is optional, and it contains the path of the private key used for identity. An example of this block is given below.&lt;/p&gt;
 
 &lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;  Host myremote
     HostName 101.102.103.104
     Port 22
     User root
-    IdentityFile ~/.ssh/id_rsa.pub&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+    IdentityFile ~/.ssh/myremote.key&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
 
 &lt;p&gt;We can log into this remote server with the command,&lt;/p&gt;
 
