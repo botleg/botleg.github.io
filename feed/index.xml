@@ -5,9 +5,191 @@
     <description>Hi, botleg is a blog where you can find tutorials and techniques in web development, big data analysis, databases, cloud computing and anything related to technology.</description>
     <link>http://botleg.com/</link>
     <atom:link href="http://botleg.com/feed" rel="self" type="application/rss+xml"/>
-    <pubDate>Fri, 08 Jan 2016 23:14:42 +0530</pubDate>
-    <lastBuildDate>Fri, 08 Jan 2016 23:14:42 +0530</lastBuildDate>
+    <pubDate>Sun, 17 Jan 2016 17:16:44 +0530</pubDate>
+    <lastBuildDate>Sun, 17 Jan 2016 17:16:44 +0530</lastBuildDate>
     <generator>Jekyll v3.0.1</generator>
+    
+      <item>
+        <title>HTTPS with Let&#39;s Encrypt and nginx</title>
+        <author><name>Hanzel Jesheen</name></author>
+        <description>&lt;p&gt;HTTPS is a secure protocol for the internet. Unlike the communication in HTTP, which happens in plain-text, the data transferred between the server and the client with HTTPS is encrypted. HTTPS also verifies the identity of the website we are accessing with a &lt;code class=&quot;highlighter-rouge&quot;&gt;SSL/TLS&lt;/code&gt; certificate. It was initially used in online payment website, but in the recent age of privacy, it is deemed mandatory. That’s where &lt;a href=&quot;https://letsencrypt.org/&quot;&gt;Let’s Encrypt&lt;/a&gt; comes in.&lt;/p&gt;
+
+&lt;p&gt;Let’s Encrypt is a &lt;code class=&quot;highlighter-rouge&quot;&gt;Certificate Authority&lt;/code&gt;, they verify a website and issues certificates. The browsers have a list of trusted Certificate Authorities whose certificates it will accept. There are a lot of Certificate Authorities, so what make Let’s Encrypt different?&lt;/p&gt;
+
+&lt;p&gt;Two main issues with SSL certificates was that, it was paid and the process is not generally automated. Let’s Encrypt solves both these issues. Let’s Encrypt issues certificates &lt;code class=&quot;highlighter-rouge&quot;&gt;free of cost&lt;/code&gt; and it can be automated. You just need root terminal access to the server. It is currently in public beta and is backed by major players like Mozilla, Facebook, Google, etc.&lt;/p&gt;
+
+&lt;p&gt;In this article, we will see how to create a certificate with Let’s Encrypt and use it to host our server via HTTPS. We will be using an &lt;code class=&quot;highlighter-rouge&quot;&gt;nginx&lt;/code&gt; server here but the process is similar to all servers.&lt;/p&gt;
+
+&lt;h2 id=&quot;installing-lets-encrypt&quot;&gt;Installing Let’s Encrypt&lt;/h2&gt;
+&lt;p&gt;Use SSH to log into your server as &lt;code class=&quot;highlighter-rouge&quot;&gt;root&lt;/code&gt; user. If you have &lt;code class=&quot;highlighter-rouge&quot;&gt;git&lt;/code&gt; installed in the server, you can clone the Let’s Encrypt repo in &lt;code class=&quot;highlighter-rouge&quot;&gt;/opt&lt;/code&gt; folder.&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;&lt;span class=&quot;nb&quot;&gt;cd&lt;/span&gt; /opt
+git clone https://github.com/letsencrypt/letsencrypt&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;Otherwise, download the latest &lt;code class=&quot;highlighter-rouge&quot;&gt;tar.gz&lt;/code&gt; package from &lt;code class=&quot;highlighter-rouge&quot;&gt;https://github.com/letsencrypt/letsencrypt/releases&lt;/code&gt; with wget. Extract this to &lt;code class=&quot;highlighter-rouge&quot;&gt;/opt/&lt;/code&gt; and rename the folder to &lt;code class=&quot;highlighter-rouge&quot;&gt;letsencrypt&lt;/code&gt;. Latest version at the time of writing was &lt;code class=&quot;highlighter-rouge&quot;&gt;v0.2.0&lt;/code&gt;, so the commands for this are.&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;wget https://github.com/letsencrypt/letsencrypt/archive/v0.2.0.tar.gz
+tar xf v0.2.0.tar.gz -C /opt/
+&lt;span class=&quot;nb&quot;&gt;cd&lt;/span&gt; /opt
+mv letsencrypt-0.2.0 letsencrypt&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;Now we have letsencrypt installed at &lt;code class=&quot;highlighter-rouge&quot;&gt;/opt/letsencrypt&lt;/code&gt;. You can add this to &lt;code class=&quot;highlighter-rouge&quot;&gt;PATH&lt;/code&gt;.&lt;/p&gt;
+
+&lt;h2 id=&quot;lets-encrypt-configuration&quot;&gt;Let’s Encrypt Configuration&lt;/h2&gt;
+&lt;p&gt;Before you add SSL certificates, you need to register a domain and the domain must point to the server’s public address. For this, you need to a set up a &lt;code class=&quot;highlighter-rouge&quot;&gt;A&lt;/code&gt; or &lt;code class=&quot;highlighter-rouge&quot;&gt;CNAME&lt;/code&gt; record with your DNS. You can check with your domain registar or custom DNS service to do this. If you have a HTTP site running in the server, you would have already done this.&lt;/p&gt;
+
+&lt;p&gt;Let’s Encrypt need to verify that you own the domain before they provide you with the certificates. This can be done in various ways. If you are running &lt;code class=&quot;highlighter-rouge&quot;&gt;Apache&lt;/code&gt; server, Let’s Encrypt can use it to verify your ownership and even install the certificates in the server for you. There is also something similar for &lt;code class=&quot;highlighter-rouge&quot;&gt;nginx&lt;/code&gt;, but it’s still experimental and not production-ready.&lt;/p&gt;
+
+&lt;p&gt;Another method is &lt;code class=&quot;highlighter-rouge&quot;&gt;standalone&lt;/code&gt;, where the Let’s Encrypt client will create a temporary webserver for verification. However, this need our &lt;code class=&quot;highlighter-rouge&quot;&gt;nginx&lt;/code&gt; server to be shutdown while creating and renewing our certificates. That’s just not viable.&lt;/p&gt;
+
+&lt;p&gt;So we will go with the &lt;code class=&quot;highlighter-rouge&quot;&gt;webroot&lt;/code&gt; method. In this method, we provide a folder path as &lt;code class=&quot;highlighter-rouge&quot;&gt;webroot-path&lt;/code&gt;. This folder must be served by our server. A temporary file will be made inside &lt;code class=&quot;highlighter-rouge&quot;&gt;&amp;lt;webroot-path&amp;gt;/.well-known/acme-challenge/&lt;/code&gt; by the client. Let’s Encrypt will access it from the domain to verify the ownership.&lt;/p&gt;
+
+&lt;p&gt;For example, if the domain in &lt;code class=&quot;highlighter-rouge&quot;&gt;www.example.com&lt;/code&gt; and the &lt;code class=&quot;highlighter-rouge&quot;&gt;webroot-path&lt;/code&gt; is &lt;code class=&quot;highlighter-rouge&quot;&gt;/usr/share/nginx/html&lt;/code&gt;. The client will create a temporary file named something like &lt;code class=&quot;highlighter-rouge&quot;&gt;1PnCIkY&lt;/code&gt; inside &lt;code class=&quot;highlighter-rouge&quot;&gt;/usr/share/nginx/html/.well-known/acme-challenge/&lt;/code&gt; and it will accessed from &lt;code class=&quot;highlighter-rouge&quot;&gt;www.example.com/.well-known/acme-challenge/1PnCIkY&lt;/code&gt; for verification of the domain ownership.&lt;/p&gt;
+
+&lt;p&gt;The configuration needed to create the certificates are put in a file named &lt;code class=&quot;highlighter-rouge&quot;&gt;cli.ini&lt;/code&gt; inside &lt;code class=&quot;highlighter-rouge&quot;&gt;/opt/letsencrypt&lt;/code&gt;.&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-conf&quot; data-lang=&quot;conf&quot;&gt;&lt;span class=&quot;n&quot;&gt;rsa&lt;/span&gt;-&lt;span class=&quot;n&quot;&gt;key&lt;/span&gt;-&lt;span class=&quot;n&quot;&gt;size&lt;/span&gt; = &lt;span class=&quot;m&quot;&gt;4096&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;email&lt;/span&gt; = &amp;lt;&lt;span class=&quot;n&quot;&gt;your&lt;/span&gt;-&lt;span class=&quot;n&quot;&gt;email&lt;/span&gt;&amp;gt;
+&lt;span class=&quot;n&quot;&gt;domains&lt;/span&gt; = &amp;lt;&lt;span class=&quot;n&quot;&gt;domains&lt;/span&gt;&amp;gt;
+&lt;span class=&quot;n&quot;&gt;authenticator&lt;/span&gt; = &lt;span class=&quot;n&quot;&gt;webroot&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;webroot&lt;/span&gt;-&lt;span class=&quot;n&quot;&gt;path&lt;/span&gt; = /&lt;span class=&quot;n&quot;&gt;usr&lt;/span&gt;/&lt;span class=&quot;n&quot;&gt;share&lt;/span&gt;/&lt;span class=&quot;n&quot;&gt;nginx&lt;/span&gt;/&lt;span class=&quot;n&quot;&gt;html&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;You need to provide your email address for recovering the certificate credentials. Also add the domains for which you want the certificates for seperated by spaces like, &lt;code class=&quot;highlighter-rouge&quot;&gt;example.com www.example.com&lt;/code&gt;.&lt;/p&gt;
+
+&lt;h2 id=&quot;nginx&quot;&gt;Nginx&lt;/h2&gt;
+&lt;p&gt;We need to set up nginx to serve the &lt;code class=&quot;highlighter-rouge&quot;&gt;webroot-path&lt;/code&gt; folder with nginx. If you have not installed &lt;code class=&quot;highlighter-rouge&quot;&gt;nginx&lt;/code&gt; yet, install it with,&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;apt-get install nginx&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;Now, open the nginx configuration at &lt;code class=&quot;highlighter-rouge&quot;&gt;/etc/nginx/sites-available/default&lt;/code&gt; and change it as following to serve &lt;code class=&quot;highlighter-rouge&quot;&gt;.well-known&lt;/code&gt; folder.&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-nginx&quot; data-lang=&quot;nginx&quot;&gt;&lt;span class=&quot;k&quot;&gt;server&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;kn&quot;&gt;listen&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;80&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+  &lt;span class=&quot;kn&quot;&gt;server_name&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;lt;domain-name&amp;gt;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+  
+  &lt;span class=&quot;kn&quot;&gt;root&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;/usr/share/nginx/html&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+  &lt;span class=&quot;kn&quot;&gt;index&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;index.html&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;index.htm&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;index.nginx-debian.html&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+
+  &lt;span class=&quot;kn&quot;&gt;location&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;^~&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;/.well-known/&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;kn&quot;&gt;allow&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;all&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+  &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;h2 id=&quot;create-certificate&quot;&gt;Create Certificate&lt;/h2&gt;
+&lt;p&gt;Finally, we are ready to create our first certificate. Execute the following commands.&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;&lt;span class=&quot;nb&quot;&gt;cd&lt;/span&gt; /opt/letsencrypt
+./letsencrypt-auto certonly --agree-tos --config cli.ini&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;The &lt;code class=&quot;highlighter-rouge&quot;&gt;certonly&lt;/code&gt; parameter creates the certificate. &lt;code class=&quot;highlighter-rouge&quot;&gt;--agree-tos&lt;/code&gt; flag is used say that we are accepting the terms. &lt;code class=&quot;highlighter-rouge&quot;&gt;--config&lt;/code&gt; flag is used to point to the configuration file, which is found in &lt;code class=&quot;highlighter-rouge&quot;&gt;/opt/letsencrypt/cli.ini&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;This creates the SSL certificates in &lt;code class=&quot;highlighter-rouge&quot;&gt;/etc/letsencrypt/live/&amp;lt;domain-name&amp;gt;/&lt;/code&gt; folder. Whenever we renew the certificates, the latest will be found in this folder.&lt;/p&gt;
+
+&lt;h2 id=&quot;nginx-https-configuration&quot;&gt;Nginx HTTPS configuration&lt;/h2&gt;
+&lt;p&gt;Now that we have the certificates, we can change the configuration in nginx to serve via HTTPS. The HTTPS connection is done via the port &lt;code class=&quot;highlighter-rouge&quot;&gt;443&lt;/code&gt;. The first server block in nginx configuration at &lt;code class=&quot;highlighter-rouge&quot;&gt;/etc/nginx/sites-available/default&lt;/code&gt; is to redirect the HTTP traffic to HTTPS. We are also returning a &lt;code class=&quot;highlighter-rouge&quot;&gt;301 Moved Permanently&lt;/code&gt; header back. Replace the &lt;code class=&quot;highlighter-rouge&quot;&gt;domain-name&lt;/code&gt; here to your domain.&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-nginx&quot; data-lang=&quot;nginx&quot;&gt;&lt;span class=&quot;k&quot;&gt;server&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;kn&quot;&gt;listen&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;80&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+  &lt;span class=&quot;kn&quot;&gt;server_name&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;lt;domain-name&amp;gt;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+  &lt;span class=&quot;kn&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;301&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;https://&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$host$request_uri&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;The second server block is for HTTPS running at port 443. It uses the certificates found at &lt;code class=&quot;highlighter-rouge&quot;&gt;/etc/letsencrypt/live/&amp;lt;domain-name&amp;gt;&lt;/code&gt;&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-nginx&quot; data-lang=&quot;nginx&quot;&gt;&lt;span class=&quot;k&quot;&gt;server&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;kn&quot;&gt;listen&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;443&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;ssl&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+  &lt;span class=&quot;kn&quot;&gt;server_name&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;lt;domain-name&amp;gt;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+
+  &lt;span class=&quot;kn&quot;&gt;ssl_certificate&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;/etc/letsencrypt/live/&amp;lt;domain-name&amp;gt;/fullchain.pem&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+  &lt;span class=&quot;kn&quot;&gt;ssl_certificate_key&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;/etc/letsencrypt/live/&amp;lt;domain-name&amp;gt;/privkey.pem&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+
+  &lt;span class=&quot;kn&quot;&gt;root&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;/usr/share/nginx/html&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+  &lt;span class=&quot;kn&quot;&gt;index&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;index.html&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;index.htm&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;index.nginx-debian.html&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+
+  &lt;span class=&quot;kn&quot;&gt;location&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;/&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;kn&quot;&gt;try_files&lt;/span&gt; &lt;span class=&quot;nv&quot;&gt;$uri&lt;/span&gt; &lt;span class=&quot;nv&quot;&gt;$uri&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;/&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;404&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+  &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+  &lt;span class=&quot;kn&quot;&gt;location&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;^~&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;/.well-known/&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;kn&quot;&gt;allow&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;all&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+  &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;You can reload the nginx with,&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;service nginx reload&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;If your are using reverse-proxy to host in some other port, the configuration will look like this.&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-nginx&quot; data-lang=&quot;nginx&quot;&gt;&lt;span class=&quot;k&quot;&gt;server&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;kn&quot;&gt;listen&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;4125&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+  &lt;span class=&quot;kn&quot;&gt;server_name&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;lt;domain-name&amp;gt;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+
+  &lt;span class=&quot;kn&quot;&gt;error_page&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;497&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;https://&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$host&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;4125&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$request_uri&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+
+  &lt;span class=&quot;kn&quot;&gt;ssl&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;on&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+  &lt;span class=&quot;kn&quot;&gt;ssl_certificate&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;/etc/letsencrypt/live/&amp;lt;domain-name&amp;gt;/fullchain.pem&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+  &lt;span class=&quot;kn&quot;&gt;ssl_certificate_key&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;/etc/letsencrypt/live/&amp;lt;domain-name&amp;gt;/privkey.pem&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+
+  &lt;span class=&quot;kn&quot;&gt;location&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;/&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;kn&quot;&gt;proxy_pass&lt;/span&gt;          &lt;span class=&quot;s&quot;&gt;http://127.0.0.1:4125/&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;kn&quot;&gt;proxy_set_header&lt;/span&gt;    &lt;span class=&quot;s&quot;&gt;X-Real-IP&lt;/span&gt;         &lt;span class=&quot;nv&quot;&gt;$remote_addr&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;kn&quot;&gt;proxy_set_header&lt;/span&gt;    &lt;span class=&quot;s&quot;&gt;X-Forwarded-For&lt;/span&gt;   &lt;span class=&quot;nv&quot;&gt;$proxy_add_x_forwarded_for&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;kn&quot;&gt;proxy_set_header&lt;/span&gt;    &lt;span class=&quot;s&quot;&gt;X_FORWARDED_PROTO&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;https&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;kn&quot;&gt;proxy_set_header&lt;/span&gt;    &lt;span class=&quot;s&quot;&gt;Host&lt;/span&gt;              &lt;span class=&quot;nv&quot;&gt;$http_host&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;kn&quot;&gt;proxy_buffering&lt;/span&gt;     &lt;span class=&quot;no&quot;&gt;off&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;kn&quot;&gt;proxy_redirect&lt;/span&gt;      &lt;span class=&quot;no&quot;&gt;off&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+  &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;Here, the &lt;code class=&quot;highlighter-rouge&quot;&gt;error_page 497&lt;/code&gt; is used to redirect the HTTP traffic to port &lt;code class=&quot;highlighter-rouge&quot;&gt;4125&lt;/code&gt; to HTTPS.&lt;/p&gt;
+
+&lt;h2 id=&quot;automated-renewal&quot;&gt;Automated Renewal&lt;/h2&gt;
+&lt;p&gt;Let’s Encrypt certificates are only valid for 90 days, so you would have to renew them. To renew, you just have to run the client with &lt;code class=&quot;highlighter-rouge&quot;&gt;--renew-by-default&lt;/code&gt; flag also. The command would look like this.&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;/opt/letsencrypt/letsencrypt-auto certonly --renew-by-default --agree-tos --config /opt/letsencrypt/cli.ini&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;This command will renew the certificate. We can automate renewal by running this command as a &lt;code class=&quot;highlighter-rouge&quot;&gt;cron&lt;/code&gt; job. Cron is a time-based job scheduler. We can make this command run once a month to renew certificates at a monthly basis to prevent it from being expired.&lt;/p&gt;
+
+&lt;p&gt;To add a new cron job, type the following command.&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;sudo crontab -e&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;Add the following lines to the end of the cron file.&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;&lt;span class=&quot;nv&quot;&gt;SHELL&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;/bin/bash
+&lt;span class=&quot;nv&quot;&gt;HOME&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;/
+&lt;span class=&quot;nv&quot;&gt;MAILTO&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;”example@mail.com”
+30 4 1 &lt;span class=&quot;k&quot;&gt;*&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;*&lt;/span&gt; /opt/letsencrypt/letsencrypt-auto certonly --renew-by-default --agree-tos --config /opt/letsencrypt/cli.ini &amp;gt;&amp;gt; /var/log/letsencrypt.log&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;This causes the command to run every month on the 1st at 4:30AM. The output of this command is stored in &lt;code class=&quot;highlighter-rouge&quot;&gt;/var/log/letsencrypt.log&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;As a side note, there are some limits on the number of certificates we can make a week for a single domain. So to try these command with no limits, you can add the flag &lt;code class=&quot;highlighter-rouge&quot;&gt;--server https://acme-staging.api.letsencrypt.org/directory&lt;/code&gt; to Let’s Encrypt commands. This creates dummy certificates, which are NOT valid but you can use it to test the working of the cron job.&lt;/p&gt;
+</description>
+        <pubDate>Sun, 17 Jan 2016 22:30:00 +0530</pubDate>
+        <link>http://botleg.com/stories/https-with-lets-encrypt-and-nginx/</link>
+        <guid isPermaLink="true">http://botleg.com/stories/https-with-lets-encrypt-and-nginx/</guid>
+        
+        <category>https</category>
+        
+        <category>letsencrypt</category>
+        
+        <category>ssl</category>
+        
+        <category>tls</category>
+        
+        <category>certificate</category>
+        
+        <category>authority</category>
+        
+        <category>nginx</category>
+        
+        <category>git`</category>
+        
+        
+        <category>web</category>
+        
+      </item>
     
       <item>
         <title>Docker Hosting with sloppy.io</title>
@@ -1632,30 +1814,6 @@ type: search
         
         
         <category>jekyll</category>
-        
-      </item>
-    
-      <item>
-        <title>hello world :)</title>
-        <author><name>Hanzel Jesheen</name></author>
-        <description>&lt;p&gt;Welcome to botleg.&lt;/p&gt;
-
-&lt;p&gt;Botleg is a blog where you can find tutorials and techniques in web development, big data analysis, databases, cloud computing and anything related to technology. I’ll share my experince solving some problems and any workarounds. If it is a walkthrough tutorial, I’ll create a repository and share it with you.&lt;/p&gt;
-
-&lt;p&gt;This blog is made using &lt;a href=&quot;http://jekyllrb.com&quot;&gt;Jekyll&lt;/a&gt;. If you are unfamiliar with it, it is a brilliant static site generator. I’ve used some tricks with it to add search and comment features to it. This blog is &lt;code class=&quot;highlighter-rouge&quot;&gt;open-source&lt;/code&gt; and its code is hosted in &lt;a href=&quot;https://github.com/botleg/botleg.github.io&quot;&gt;GitHub&lt;/a&gt;. The blog itself is hosted using &lt;a href=&quot;https://pages.github.com/&quot;&gt;GitHub Pages&lt;/a&gt;, a free hosting service from GitHub for static websites. I’ll also write about various techniques I have used in this blog.&lt;/p&gt;
-
-&lt;p&gt;You can subscribe to this blog via &lt;a href=&quot;http://botleg.com/feed&quot;&gt;RSS&lt;/a&gt;, and I hope you do. So that’s all about botleg and stay tuned for my next post.&lt;/p&gt;
-</description>
-        <pubDate>Sat, 29 Aug 2015 02:30:00 +0530</pubDate>
-        <link>http://botleg.com/stories/hello-world/</link>
-        <guid isPermaLink="true">http://botleg.com/stories/hello-world/</guid>
-        
-        <category>markdown</category>
-        
-        <category>jekyll</category>
-        
-        
-        <category>misc</category>
         
       </item>
     
