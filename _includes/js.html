@@ -10,8 +10,8 @@
 </script>
 {% if page.type == 'search' %}
 <script type="text/javascript" src="/assets/js/search.js"></script>
-{% elsif page.type == 'post' %}
-<script type="text/javascript" src="/assets/js/post.js"></script>
-{% else page.type == 'home' %}
+{% elsif page.type == 'home' %}
 <script type="text/javascript" src="/assets/js/home.js"></script>
+{% else %}
+<script type="text/javascript" src="/assets/js/post.js"></script>
 {% endif %}
