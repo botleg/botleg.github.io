@@ -57,7 +57,7 @@ authenticator = webroot
 webroot-path = /usr/share/nginx/html
 {% endhighlight %}
 
-You need to provide your email address for recovering the certificate credentials. Also add the domains for which you want the certificates for seperated by spaces like, `example.com www.example.com`.
+You need to provide your email address for recovering the certificate credentials. Also add the domains for which you want the certificates for seperated by commas like, `example.com, www.example.com`.
 
 Nginx
 -----
