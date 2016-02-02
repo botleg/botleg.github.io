@@ -2,10 +2,10 @@
 summary: With Let's Encrypt create SSL certificates free of cost to serve your site via HTTPS. Also, see how to automate the process of renewing these certificates.
 title: HTTPS with Let's Encrypt and nginx
 layout: post
-categories: web
+categories: devops
 bg: "background:rgb(241, 196, 15) 25%;background-image: linear-gradient(90deg, rgb(241, 196, 15) 25%, rgb(231, 76, 60) 100%);background-image: -moz-linear-gradient(left, rgb(241, 196, 15) 25%, rgb(231, 76, 60) 100%);background-image: -webkit-linear-gradient(left, rgb(241, 196, 15) 25%, rgb(231, 76, 60) 100%);background-image: -o-linear-gradient(left, rgb(241, 196, 15) 25%, rgb(231, 76, 60) 100%);background-image: -ms-linear-gradient(left, rgb(241, 196, 15) 25%, rgb(231, 76, 60) 100%);"
 date:   2016-01-17 17:00:00
-tags: https letsencrypt ssl tls certificate authority nginx git`
+tags: https letsencrypt ssl tls certificate authority nginx git popular
 ---
 HTTPS is a secure protocol for the internet. Unlike the communication in HTTP, which happens in plain-text, the data transferred between the server and the client with HTTPS is encrypted. HTTPS also verifies the identity of the website we are accessing with a `SSL/TLS` certificate. It was initially used in online payment website, but in the recent age of privacy, it is deemed mandatory. That's where [Let's Encrypt](https://letsencrypt.org/) comes in.
 
@@ -171,7 +171,7 @@ Let's Encrypt certificates are only valid for 90 days, so you would have to rene
 /opt/letsencrypt/letsencrypt-auto certonly --renew-by-default --agree-tos --config /opt/letsencrypt/cli.ini
 {% endhighlight %}
 
-This command will renew the certificate. We can automate renewal by running this command as a `cron` job. Cron is a time-based job scheduler. We can make this command run once a month to renew certificates at a monthly basis to prevent it from being expired.
+This command will renew the certificate. We can automate renewal by running this command as a `cron` job. Cron is a time-based job scheduler. We can make this command run once a month to renew certificates at a monthly basis to prevent it from being expired. We also need to reload the nginx configurations.
 
 To add a new cron job, type the following command.
 
@@ -185,7 +185,7 @@ Add the following lines to the end of the cron file.
 SHELL=/bin/bash
 HOME=/
 MAILTO=”example@mail.com”
-30 4 1 * * /opt/letsencrypt/letsencrypt-auto certonly --renew-by-default --agree-tos --config /opt/letsencrypt/cli.ini >> /var/log/letsencrypt.log
+30 4 1 * * /opt/letsencrypt/letsencrypt-auto certonly --renew-by-default --agree-tos --config /opt/letsencrypt/cli.ini && service nginx reload >> /var/log/letsencrypt.log
 {% endhighlight %}
 
 This causes the command to run every month on the 1st at 4:30AM. The output of this command is stored in `/var/log/letsencrypt.log`.
