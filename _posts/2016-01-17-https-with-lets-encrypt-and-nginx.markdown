@@ -185,7 +185,7 @@ Add the following lines to the end of the cron file.
 SHELL=/bin/bash
 HOME=/
 MAILTO=”example@mail.com”
-30 4 1 * * /opt/letsencrypt/letsencrypt-auto certonly --renew-by-default --agree-tos --config /opt/letsencrypt/cli.ini && service nginx reload >> /var/log/letsencrypt.log
+30 4 1 * * (/opt/letsencrypt/letsencrypt-auto certonly --renew-by-default --agree-tos --config /opt/letsencrypt/cli.ini && service nginx reload) >> /var/log/letsencrypt.log
 {% endhighlight %}
 
 This causes the command to run every month on the 1st at 4:30AM. The output of this command is stored in `/var/log/letsencrypt.log`.
