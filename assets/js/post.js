@@ -48,7 +48,7 @@ function addComment(e) {
 
 	commentBtn.disabled = true;
 	commentBtn.innerHTML = "Posting...";
-	xhr.open('POST', encodeURI('http://api.botleg.com/comment/'+window.location.pathname.split('/')[2]));
+	xhr.open('POST', encodeURI('https://api.botleg.com/comment/'+window.location.pathname.split('/')[2]));
 	xhr.setRequestHeader('Content-Type', 'application/json');
 	xhr.onload = function() {
 		if (xhr.status === 200) {
@@ -65,7 +65,7 @@ function addComment(e) {
 
 comments.innerHTML = '<span class="text">Loading comments...</span>';
 
-xhr.open('GET', encodeURI('http://api.botleg.com/comment/'+window.location.pathname.split('/')[2]));
+xhr.open('GET', encodeURI('https://api.botleg.com/comment/'+window.location.pathname.split('/')[2]));
 xhr.onload = function() {
 	if (xhr.status === 200) {
 		render(JSON.parse(xhr.responseText));

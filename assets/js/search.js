@@ -39,7 +39,7 @@ function updatePaging() {
 function loadPage() {
 	list.innerHTML = '<span class="text">Loading results...</span>';
 
-	xhr.open('GET', encodeURI('http://api.botleg.com/search/'+query+'/'+cPage));
+	xhr.open('GET', encodeURI('https://api.botleg.com/search/'+query+'/'+cPage));
 	xhr.onload = function() {
 		if (xhr.status === 200) {
 			render(JSON.parse(xhr.responseText).results);
@@ -84,7 +84,7 @@ function search () {
 	cPage = 1;
 	list.innerHTML = '<span class="text">Loading results...</span>';
 
-	xhr.open('GET', encodeURI('http://api.botleg.com/search/'+query));
+	xhr.open('GET', encodeURI('https://api.botleg.com/search/'+query));
 	xhr.onload = function() {
 		if (xhr.status === 200) {
 			showResult(JSON.parse(xhr.responseText));
