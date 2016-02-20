@@ -10,7 +10,7 @@ permalink: /stories/:title/
 paginate: 10
 pinned: 3
 paginate_path: "/blog/:num"
-exclude: [Gemfile, Gemfile.lock, Rakefile, assets/js assets/sass, assets/images/blog, gulpfile.js, package.json, '*.log', node_modules]
+exclude: [Gemfile, Gemfile.lock, Rakefile, assets/js, assets/sass, assets/images/blog, gulpfile.js, package.json, '*.log', node_modules]
 keep_files: [assets, .git, CNAME, .nojekyll]
 env: production
 
