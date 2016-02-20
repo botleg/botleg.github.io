@@ -3,10 +3,10 @@
   <channel>
     <title>Botleg</title>
     <description>Hi, botleg is a blog where you can find tutorials and techniques in web development, big data analysis, databases, cloud computing and anything related to technology.</description>
-    <link>http://botleg.com/</link>
-    <atom:link href="http://botleg.com/feed" rel="self" type="application/rss+xml"/>
-    <pubDate>Sat, 13 Feb 2016 17:36:02 +0530</pubDate>
-    <lastBuildDate>Sat, 13 Feb 2016 17:36:02 +0530</lastBuildDate>
+    <link>https://botleg.com/</link>
+    <atom:link href="https://botleg.com/feed" rel="self" type="application/rss+xml"/>
+    <pubDate>Sat, 20 Feb 2016 12:10:07 +0530</pubDate>
+    <lastBuildDate>Sat, 20 Feb 2016 12:10:07 +0530</lastBuildDate>
     <generator>Jekyll v3.0.1</generator>
     
       <item>
@@ -44,7 +44,7 @@
 
 &lt;p&gt;Goto Nodes tab and click on the &lt;code class=&quot;highlighter-rouge&quot;&gt;Launch your first node&lt;/code&gt; button. Give a name for the cluster. You can use &lt;code class=&quot;highlighter-rouge&quot;&gt;Deploy tags&lt;/code&gt; to specify where you want the services to be hosted. For this article, it’s not needed. Now select your provider, region and instance type, as needed. I am selecting 1GB instance from Digital Ocean.&lt;/p&gt;
 
-&lt;p&gt;&lt;img src=&quot;/assets/images/tutum-nodes.jpg&quot; alt=&quot;New node cluster settings&quot; class=&quot;center-image&quot; /&gt;
+&lt;p&gt;&lt;img src=&quot;/assets/images/tutum-nodes@2x.jpg&quot; srcset=&quot;/assets/images/tutum-nodes@1x.jpg 300w, /assets/images/tutum-nodes@2x.jpg 600w, /assets/images/tutum-nodes@3x.jpg 900w&quot; sizes=&quot;(min-width: 960px) 900px, 100vw&quot; alt=&quot;New node cluster settings&quot; class=&quot;center-image&quot; /&gt;
 &lt;em class=&quot;image-caption&quot;&gt;New node cluster settings&lt;/em&gt;&lt;/p&gt;
 
 &lt;p&gt;Now select the number of nodes you want in your cluster. I want two nodes in the cluster. You can change any time as needed. Now click the button &lt;code class=&quot;highlighter-rouge&quot;&gt;Launch node cluster&lt;/code&gt; button to deploy the cluster. This could take a few minutes. Once it’s ready, we can see the status &lt;code class=&quot;highlighter-rouge&quot;&gt;Deployed&lt;/code&gt; for each node.&lt;/p&gt;
@@ -152,8 +152,8 @@
 &lt;p&gt;In this article, we deployed a load balanced Node.js application and Redis database with Docker containers with &lt;a href=&quot;https://www.tutum.co/&quot;&gt;Tutum&lt;/a&gt;. We have seen that, Tutum provides us with easy access to powerful features like load balancing and scaling when using Docker hosting.&lt;/p&gt;
 </description>
         <pubDate>Wed, 03 Feb 2016 06:30:00 +0530</pubDate>
-        <link>http://botleg.com/stories/orchestrate-docker-containers-with-tutum/</link>
-        <guid isPermaLink="true">http://botleg.com/stories/orchestrate-docker-containers-with-tutum/</guid>
+        <link>https://botleg.com/stories/orchestrate-docker-containers-with-tutum/</link>
+        <guid isPermaLink="true">https://botleg.com/stories/orchestrate-docker-containers-with-tutum/</guid>
         
         <category>tutum</category>
         
@@ -340,8 +340,8 @@ mv letsencrypt-0.2.0 letsencrypt&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
 &lt;p&gt;As a side note, there are some limits on the number of certificates we can make a week for a single domain. So to try these command with no limits, you can add the flag &lt;code class=&quot;highlighter-rouge&quot;&gt;--server https://acme-staging.api.letsencrypt.org/directory&lt;/code&gt; to Let’s Encrypt commands. This creates dummy certificates, which are NOT valid but you can use it to test the working of the cron job.&lt;/p&gt;
 </description>
         <pubDate>Sun, 17 Jan 2016 22:30:00 +0530</pubDate>
-        <link>http://botleg.com/stories/https-with-lets-encrypt-and-nginx/</link>
-        <guid isPermaLink="true">http://botleg.com/stories/https-with-lets-encrypt-and-nginx/</guid>
+        <link>https://botleg.com/stories/https-with-lets-encrypt-and-nginx/</link>
+        <guid isPermaLink="true">https://botleg.com/stories/https-with-lets-encrypt-and-nginx/</guid>
         
         <category>https</category>
         
@@ -565,8 +565,8 @@ WORKDIR /&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;app&lt;/span&gt;
 &lt;p&gt;Now, you have seen how easy it is to host Docker images with &lt;a href=&quot;http://sloppy.io/&quot;&gt;sloppy.io&lt;/a&gt;. If you have experience with &lt;code class=&quot;highlighter-rouge&quot;&gt;Docker Compose&lt;/code&gt;, you will feel right at home. Even otherwise, it is pretty simple. If you are working with Dockers, a CaaS like sloppy.io will provide you with easy hosting and scaling of the Docker images.&lt;/p&gt;
 </description>
         <pubDate>Sun, 03 Jan 2016 21:30:00 +0530</pubDate>
-        <link>http://botleg.com/stories/docker-hosting-with-sloppyio/</link>
-        <guid isPermaLink="true">http://botleg.com/stories/docker-hosting-with-sloppyio/</guid>
+        <link>https://botleg.com/stories/docker-hosting-with-sloppyio/</link>
+        <guid isPermaLink="true">https://botleg.com/stories/docker-hosting-with-sloppyio/</guid>
         
         <category>docker</category>
         
@@ -703,8 +703,8 @@ WORKDIR /&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;app&lt;/span&gt;
 &lt;p&gt;In this article, we have seen how to create bookmarklet scripts that can send AJAX requests, create UI elements and even do authentication.&lt;/p&gt;
 </description>
         <pubDate>Wed, 30 Dec 2015 23:30:00 +0530</pubDate>
-        <link>http://botleg.com/stories/bookmarklet-scripts/</link>
-        <guid isPermaLink="true">http://botleg.com/stories/bookmarklet-scripts/</guid>
+        <link>https://botleg.com/stories/bookmarklet-scripts/</link>
+        <guid isPermaLink="true">https://botleg.com/stories/bookmarklet-scripts/</guid>
         
         <category>bookmarklet</category>
         
@@ -783,8 +783,8 @@ WORKDIR /&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;app&lt;/span&gt;
 &lt;p&gt;We have now covered three ways to demo your local application without deploying hassles. Use either &lt;code class=&quot;highlighter-rouge&quot;&gt;0.0.0.0&lt;/code&gt; IP address, SSH remote port forwarding or ngrok as needed.&lt;/p&gt;
 </description>
         <pubDate>Sun, 06 Dec 2015 04:30:00 +0530</pubDate>
-        <link>http://botleg.com/stories/share-your-localhost/</link>
-        <guid isPermaLink="true">http://botleg.com/stories/share-your-localhost/</guid>
+        <link>https://botleg.com/stories/share-your-localhost/</link>
+        <guid isPermaLink="true">https://botleg.com/stories/share-your-localhost/</guid>
         
         <category>SSH</category>
         
@@ -882,8 +882,8 @@ WORKDIR /&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;app&lt;/span&gt;
 &lt;p&gt;In this article, I’ve shared two SSH techniques that saved me a lot of time and helped me with tricky situations. The first one involves using a config file for SSH and other one involves local port forwarding.&lt;/p&gt;
 </description>
         <pubDate>Tue, 01 Dec 2015 06:30:00 +0530</pubDate>
-        <link>http://botleg.com/stories/tricks-with-ssh/</link>
-        <guid isPermaLink="true">http://botleg.com/stories/tricks-with-ssh/</guid>
+        <link>https://botleg.com/stories/tricks-with-ssh/</link>
+        <guid isPermaLink="true">https://botleg.com/stories/tricks-with-ssh/</guid>
         
         <category>SSH</category>
         
@@ -992,8 +992,8 @@ WORKDIR /&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;app&lt;/span&gt;
 &lt;p&gt;Except for some subtle differences, the implementation of generators in JavaScript and Python are really similar. With ES6, we can program in JavaScript as we do it in Java, C, or Python.&lt;/p&gt;
 </description>
         <pubDate>Mon, 05 Oct 2015 04:30:00 +0530</pubDate>
-        <link>http://botleg.com/stories/generators-in-javascript-and-python/</link>
-        <guid isPermaLink="true">http://botleg.com/stories/generators-in-javascript-and-python/</guid>
+        <link>https://botleg.com/stories/generators-in-javascript-and-python/</link>
+        <guid isPermaLink="true">https://botleg.com/stories/generators-in-javascript-and-python/</guid>
         
         <category>python</category>
         
@@ -1043,8 +1043,9 @@ WORKDIR /&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;app&lt;/span&gt;
 //  YOUR CODE HERE
 {% endhighlight %}&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
 
-&lt;p&gt;After adding the line numbers, the code block will look something like this.
-&lt;img src=&quot;/assets/images/code-lines.png&quot; alt=&quot;Code Block with line numbers&quot; class=&quot;center-image&quot; /&gt;
+&lt;p&gt;After adding the line numbers, the code block will look something like this.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/images/code-lines@2x.jpg&quot; srcset=&quot;/assets/images/code-lines@1x.jpg 300w, /assets/images/code-lines@2x.jpg 600w, /assets/images/code-lines@3x.jpg 900w&quot; sizes=&quot;(min-width: 960px) 900px, 100vw&quot; alt=&quot;Code Block with line numbers&quot; class=&quot;center-image&quot; /&gt;
 &lt;em class=&quot;image-caption&quot;&gt;Code Block with line numbers&lt;/em&gt;&lt;/p&gt;
 
 &lt;p&gt;This is pretty bad. The line numbers and the code does not have any division and the colour of the line numbers confuses it with the code. Also, when we select the code, the line numbers are also selected.&lt;/p&gt;
@@ -1091,8 +1092,8 @@ WORKDIR /&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;app&lt;/span&gt;
 &lt;p&gt;By tweaking the &lt;code class=&quot;highlighter-rouge&quot;&gt;.lineno&lt;/code&gt; class, we can add better looking line numbers in Jekyll code blocks. You can also prevent the line numbers from being selected while selecting the code.&lt;/p&gt;
 </description>
         <pubDate>Sun, 27 Sep 2015 16:30:00 +0530</pubDate>
-        <link>http://botleg.com/stories/line-numbers-in-jekyll-code-blocks/</link>
-        <guid isPermaLink="true">http://botleg.com/stories/line-numbers-in-jekyll-code-blocks/</guid>
+        <link>https://botleg.com/stories/line-numbers-in-jekyll-code-blocks/</link>
+        <guid isPermaLink="true">https://botleg.com/stories/line-numbers-in-jekyll-code-blocks/</guid>
         
         <category>highlight</category>
         
@@ -1273,8 +1274,8 @@ npm install --save cookie&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
 &lt;p&gt;In this article, we have seen how to use sessions to authenticate user while connecting to Socket.IO. This enables us to provide security for data communication with web sockets and store the user data persistently.&lt;/p&gt;
 </description>
         <pubDate>Fri, 25 Sep 2015 03:30:00 +0530</pubDate>
-        <link>http://botleg.com/stories/using-your-sessions-with-socketio/</link>
-        <guid isPermaLink="true">http://botleg.com/stories/using-your-sessions-with-socketio/</guid>
+        <link>https://botleg.com/stories/using-your-sessions-with-socketio/</link>
+        <guid isPermaLink="true">https://botleg.com/stories/using-your-sessions-with-socketio/</guid>
         
         <category>socket.io</category>
         
@@ -1396,7 +1397,7 @@ npm install --save cookie&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
 
 &lt;p&gt;It will fill in most of the fields. You have the option to encrypt the password, do that. Now, you can replace the field values with environment variables that you can set from Travis CI website. You can do that by going to the settings of your repository.&lt;/p&gt;
 
-&lt;p&gt;&lt;img src=&quot;/assets/images/travis-settings.jpg&quot; alt=&quot;Travis CI Settings&quot; class=&quot;center-image&quot; /&gt;
+&lt;p&gt;&lt;img src=&quot;/assets/images/travis-settings@2x.jpg&quot; srcset=&quot;/assets/images/travis-settings@1x.jpg 300w, /assets/images/travis-settings@2x.jpg 600w, /assets/images/travis-settings@3x.jpg 900w&quot; sizes=&quot;(min-width: 960px) 900px, 100vw&quot; alt=&quot;Travis CI Settings&quot; class=&quot;center-image&quot; /&gt;
 &lt;em class=&quot;image-caption&quot;&gt;Travis CI Settings&lt;/em&gt;&lt;/p&gt;
 
 &lt;p&gt;You need to prefix &lt;code class=&quot;highlighter-rouge&quot;&gt;$&lt;/code&gt; to the environment variables when accessing them from the &lt;code class=&quot;highlighter-rouge&quot;&gt;.travis.yml&lt;/code&gt; file, &lt;code class=&quot;highlighter-rouge&quot;&gt;EMAIL_ADDRESS&lt;/code&gt; can be accessed as &lt;code class=&quot;highlighter-rouge&quot;&gt;$EMAIL_ADDRESS&lt;/code&gt; in &lt;code class=&quot;highlighter-rouge&quot;&gt;.travis.yml&lt;/code&gt;. So the complete file will look something like this.&lt;/p&gt;
@@ -1446,7 +1447,7 @@ npm install --save cookie&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
   &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;USER_NAME&lt;/code&gt;: Your username in GitHub.&lt;/li&gt;
 &lt;/ul&gt;
 
-&lt;p&gt;&lt;img src=&quot;/assets/images/wercker-settings.jpg&quot; alt=&quot;Wercker Settings&quot; class=&quot;center-image&quot; /&gt;
+&lt;p&gt;&lt;img src=&quot;/assets/images/wercker-settings@2x.jpg&quot; srcset=&quot;/assets/images/wercker-settings@1x.jpg 300w, /assets/images/wercker-settings@2x.jpg 600w, /assets/images/wercker-settings@3x.jpg 900w&quot; sizes=&quot;(min-width: 960px) 900px, 100vw&quot; alt=&quot;Wercker Settings&quot; class=&quot;center-image&quot; /&gt;
 &lt;em class=&quot;image-caption&quot;&gt;Wercker Settings&lt;/em&gt;&lt;/p&gt;
 
 &lt;p&gt;There are four steps in the deploy pipeline.&lt;/p&gt;
@@ -1493,8 +1494,8 @@ npm install --save cookie&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
 &lt;p&gt;This covers the basics of Continuous Integration and deployment to OpenShift with Travis CI and Wercker. Even though this article is covering a Node.js application, the ideas can be used for any language projects. Also, the code can be modified to deploy to other cloud hosts such as Amazon S3, Heroku, etc.&lt;/p&gt;
 </description>
         <pubDate>Sun, 13 Sep 2015 15:30:00 +0530</pubDate>
-        <link>http://botleg.com/stories/build-and-deploy-to-openshift-with-travisci-and-wercker/</link>
-        <guid isPermaLink="true">http://botleg.com/stories/build-and-deploy-to-openshift-with-travisci-and-wercker/</guid>
+        <link>https://botleg.com/stories/build-and-deploy-to-openshift-with-travisci-and-wercker/</link>
+        <guid isPermaLink="true">https://botleg.com/stories/build-and-deploy-to-openshift-with-travisci-and-wercker/</guid>
         
         <category>Integration</category>
         
