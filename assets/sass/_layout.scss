@@ -183,6 +183,39 @@
         }
     }
 
+    &:before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 60px;
+        width: 100%;
+        height: 300px;
+        background: inherit;
+        z-index: -1;
+        transform-origin: right bottom;
+        -webkit-transform: skewY(-2deg);
+        -moz-transform: skewY(-2deg);
+        -ms-transform: skewY(-2deg);
+        -o-transform: skewY(-2deg);
+        transform: skewY(-2deg);
+    }
+
+    &:after {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 60px;
+        width: 100%;
+        height: 300px;
+        background: inherit;
+        z-index: -1;
+        transform-origin: left top;
+        -webkit-transform: skewY(+2deg);
+        -moz-transform: skewY(+2deg);
+        -ms-transform: skewY(+2deg);
+        -o-transform: skewY(+2deg);
+        transform: skewY(+2deg);
+    }
 }
 
 .icon {
@@ -261,12 +294,17 @@
     }
 }
 
+.post-content {
+    margin-top: 20px;
+}
+
 .aside {
     h1 {
         margin-bottom: 0;
     }
 
     display: block;
+    margin-top: 40px;
     margin-bottom: 30px;
 }
 

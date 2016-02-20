@@ -4,7 +4,7 @@ title: Bookmarklet Scripts
 layout: post
 categories: javascript
 gh: https://gist.github.com/hanzeljesheen/b056fe4319955ce14b53
-bg: "background:linear-gradient(135deg, #708090 22px, #000000 22px, #000000 24px, transparent 24px, transparent 67px, #000000 67px, #000000 69px, transparent 69px),linear-gradient(225deg, #708090 22px, #000000 22px, #000000 24px, transparent 24px, transparent 67px, #000000 67px, #000000 69px, transparent 69px)0 64px;background-color:#708090;background-size: 64px 128px"
+bg: "background:rgb(192, 57, 43);background:linear-gradient(90deg, rgb(192, 57, 43) 25%, rgb(231, 76, 60) 100%);background:-moz-linear-gradient(left, rgb(192, 57, 43) 25%, rgb(231, 76, 60) 100%);background:-webkit-linear-gradient(left, rgb(192, 57, 43) 25%, rgb(231, 76, 60) 100%);background:-o-linear-gradient(left, rgb(192, 57, 43) 25%, rgb(231, 76, 60) 100%);background:-ms-linear-gradient(left, rgb(192, 57, 43) 25%, rgb(231, 76, 60) 100%);"
 date:   2015-12-30 18:00:00
 tags: bookmarklet script bookmark ajax requests ui post cors cross-domain cookie
 ---

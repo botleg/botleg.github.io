@@ -186,14 +186,13 @@ pre {
     }
 
     section {
-        margin-top: 30px;
         @include media($medium) {
             @include span-columns(3 of 4);
         }
     }
 
     aside {
-        margin-top: 30px;
+        margin-top: 10px;
         @include media($medium) {
             @include span-columns(1 of 4);
             position: sticky;
