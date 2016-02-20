@@ -42,7 +42,8 @@ To add line numbers to this code block. Just add the keyword `linenos` to the hi
 {% endhighlight %}
 
 After adding the line numbers, the code block will look something like this.
-![Code Block with line numbers](/assets/images/code-lines.png){: .center-image }
+
+{% include image.html img="code-lines" title="Code Block with line numbers" %}
 *Code Block with line numbers*{: .image-caption }
 
 This is pretty bad. The line numbers and the code does not have any division and the colour of the line numbers confuses it with the code. Also, when we select the code, the line numbers are also selected.

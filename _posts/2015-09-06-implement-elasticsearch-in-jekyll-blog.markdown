@@ -18,7 +18,8 @@ The Jekyll blog is hosted using `GitHub Pages`, which is used to host static or 
 ##Appbase.io
 [Appbase.io](https://appbase.io/) is a Database as a service solution that provides hosted Elasticsearch endpoints. The free plan includes 100MB storage and 100K API calls per month at the time of writing. It would suffice for testing purposes. Go ahead, sign up there and create an application. You can get the username and password for your application from the dashboard by clicking Credentials.
 
-{% include image.html img="/assets/images/appbase-dash.jpg" title="Appbase.io Dashboard" caption="Appbase.io Dashboard" %}
+{% include image.html img="appbase-dash" title="Appbase.io Dashboard" %}
+*Appbase.io Dashboard*{: .image-caption }
 
 ##Node.js Backend
 We will start with the backend API that handles all communication with Elasticsearch and gives us the search results for the front-end. It uses [Koa](http://koajs.com/) web framework, which is a really good framework for developing API with Node.js and it supports Javascript ES6, so you should have atleast `v0.11` of Node.js and use the `--harmony` flag. You can see the entire code for this backend [here](https://github.com/botleg/elasticsearch-jekyll/tree/master).

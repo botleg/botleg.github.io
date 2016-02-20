@@ -1,11 +1,6 @@
 source "https://rubygems.org"
 gem 'rake'
 gem 'jekyll'
-gem 'bourbon'
-gem 'neat'
-gem 'compass'
 gem 'jekyll-sitemap'
-gem 'closure-compiler'
 gem 'jekyll-redirect-from'
-gem 'jekyll-minifier'
 gem 'jekyll-paginate'

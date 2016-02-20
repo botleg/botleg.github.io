@@ -114,7 +114,7 @@ travis setup openshift
 
 It will fill in most of the fields. You have the option to encrypt the password, do that. Now, you can replace the field values with environment variables that you can set from Travis CI website. You can do that by going to the settings of your repository.
 
-![Travis CI Settings](/assets/images/travis-settings.jpg){: .center-image }
+{% include image.html img="travis-settings" title="Travis CI Settings" %}
 *Travis CI Settings*{: .image-caption }
 
 You need to prefix `$` to the environment variables when accessing them from the `.travis.yml` file, `EMAIL_ADDRESS` can be accessed as `$EMAIL_ADDRESS` in `.travis.yml`. So the complete file will look something like this.
@@ -165,7 +165,7 @@ Create a new Deploy Target from Wercker settings named `openshift` with auto dep
 * `EMAIL_ADDRESS`: Your email address in GitHub.
 * `USER_NAME`: Your username in GitHub.
 
-![Wercker Settings](/assets/images/wercker-settings.jpg){: .center-image }
+{% include image.html img="wercker-settings" title="Wercker Settings" %}
 *Wercker Settings*{: .image-caption }
 
 There are four steps in the deploy pipeline.

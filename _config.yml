@@ -3,14 +3,15 @@ title: Botleg
 email: blog@botleg.com
 author: Hanzel Jesheen
 description: Hi, botleg is a blog where you can find tutorials and techniques in web development, big data analysis, databases, cloud computing and anything related to technology.
-baseurl: "" # the subpath of your site, e.g. /blog/
-url: "http://botleg.com" # the base hostname & protocol for your site
+baseurl: ""
+url: "https://botleg.com"
 github_username:  botleg
 permalink: /stories/:title/
 paginate: 10
 pinned: 3
 paginate_path: "/blog/:num"
-exclude: [config.rb, Gemfile, Gemfile.lock, Rakefile, assets/sass]
+exclude: [Gemfile, Gemfile.lock, Rakefile, assets/js assets/sass, assets/images/blog, gulpfile.js, package.json, '*.log', node_modules]
+keep_files: [assets, .git, CNAME, .nojekyll]
 env: production
 
 # Build settings

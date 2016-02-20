@@ -38,7 +38,7 @@ Create an account with [Tutum](https://www.tutum.co/). Then connect it to your f
 
 Goto Nodes tab and click on the `Launch your first node` button. Give a name for the cluster. You can use `Deploy tags` to specify where you want the services to be hosted. For this article, it's not needed. Now select your provider, region and instance type, as needed. I am selecting 1GB instance from Digital Ocean.
 
-![New node cluster settings](/assets/images/tutum-nodes.jpg){: .center-image }
+{% include image.html img="tutum-nodes" title="New node cluster settings" %}
 *New node cluster settings*{: .image-caption }
 
 Now select the number of nodes you want in your cluster. I want two nodes in the cluster. You can change any time as needed. Now click the button `Launch node cluster` button to deploy the cluster. This could take a few minutes. Once it's ready, we can see the status `Deployed` for each node.

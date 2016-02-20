@@ -1,12 +1,5 @@
-<div class ="image-wrapper" style="text-align: center">
-    {% if include.url %}
-    <a href="{{ include.url }}" title="{{ include.title }}" target="_blank">
-    {% endif %}
-        <img src="{{ include.img }}" alt="{{ include.title }}" style="max-width: 100%; vertical-align: middle" />
-    {% if include.url %}
-    </a>
-    {% endif %}
-    {% if include.caption %}
-        <p class="image-caption" style="color: #828282; font-size: 16px; margin-top: 4px;">{{ include.caption }}</p>
-    {% endif %}
-</div>
+<img 
+    src="/assets/images/{{ include.img }}@2x.jpg"
+    srcset="/assets/images/{{ include.img }}@1x.jpg 300w, /assets/images/{{ include.img }}@2x.jpg 600w, /assets/images/{{ include.img }}@3x.jpg 900w" 
+    sizes="(min-width: 960px) 900px, 100vw"
+    alt="{{ include.title }}" class="center-image" />
