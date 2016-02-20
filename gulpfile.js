@@ -2,8 +2,10 @@ var gulp = require('gulp'),
 	gutil = require('gulp-util'),
 	sync = require('browser-sync'),
 	compass = require('gulp-compass'),
+	imagemin = require('gulp-imagemin'),
 	minify = require('gulp-minify-css'),
 	responsive = require('gulp-responsive'),
+	critical = require('critical').generate,
 	closure = require('gulp-closure-compiler-service');
 
 var jsSources = 'assets/js/*.js',
@@ -45,6 +47,11 @@ gulp.task('js', function() {
 
 gulp.task('img', function() {
     gulp.src(imgSources)
+    	.pipe(imagemin({
+			optimizationLevel: 3,
+			progressive: true,
+			interlaced: true
+        }))
 		.pipe(responsive({
 			'*': [{
 				width: 300,
@@ -72,6 +79,18 @@ gulp.task('img', function() {
 		.on('error', gutil.log)
     	.pipe(gulp.dest('_site/assets/images'))
 	    .pipe(sync.reload({stream:true}));
+});
+
+gulp.task('critical', function() {
+	critical({
+		inline: true,
+		base: '_site',
+		src: 'stories/orchestrate-docker-containers-with-tutum/index.html',
+		css: '_site/assets/main.css',
+		dest: '_includes/critical.html',
+		width: 480,
+		minify: true
+	});
 });
 
 gulp.task('default', ['serve'], function() {

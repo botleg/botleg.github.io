@@ -9,9 +9,9 @@
 	else window.addEventListener('load', cb);
 </script>
 {% if page.type == 'search' %}
-<script type="text/javascript" src="/assets/js/search.js"></script>
+<script async type="text/javascript" src="/assets/js/search.js"></script>
 {% elsif page.type == 'home' %}
-<script type="text/javascript" src="/assets/js/home.js"></script>
+<script async type="text/javascript" src="/assets/js/home.js"></script>
 {% else %}
-<script type="text/javascript" src="/assets/js/post.js"></script>
+<script async type="text/javascript" src="/assets/js/post.js"></script>
 {% endif %}
