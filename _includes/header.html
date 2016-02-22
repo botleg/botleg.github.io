@@ -1,14 +1,14 @@
-<header class="site-header" style="background:rgb(155, 89, 182) 25%;background-image:linear-gradient(90deg, rgb(155, 89, 182) 25%, rgb(41, 128, 185) 100%);background-image:-moz-linear-gradient(left, rgb(155, 89, 182) 25%, rgb(41, 128, 185) 100%);background-image:webkit-linear-gradient(left, rgb(155, 89, 182) 25%, rgb(41, 128, 185) 100%);background-image:-o-linear-gradient(left, rgb(155, 89, 182) 25%, rgb(41, 128, 185) 100%);background-image:-ms-linear-gradient(left, rgb(155, 89, 182) 25%, rgb(41, 128, 185) 100%);">
-
-  <div class="wrapper">
-
-    <a class="site-title" href="{{ site.baseurl }}/">{{ site.title | capitalize }}</a>
-
-	<div id="search">
-		<form id="searchform">
-			<input type="text" placeholder="search" id="searchbox">
-		</form>
-	</div>
-  </div>
-
-</header>
+<div style="{{ site.bg }}">
+	<section class="site-header">
+		<div class="wrapper">
+	
+			<a class="site-title" href="{{ site.baseurl }}/">{{ site.title | capitalize }}</a>
+	
+			<div id="search">
+				<form id="searchform">
+					<input type="text" placeholder="search" id="searchbox">
+				</form>
+			</div>
+		</div>
+	</section>
+</div>

@@ -1,0 +1,24 @@
+---
+layout: default
+permalink: /404.html
+---
+
+<div class="home">
+
+	{% include header.html %}
+
+	<div class="wrapper">
+		<section>
+			<h1 class="page-heading">404 NOT FOUND</h1>
+			
+			Unfortunatly the page you were looking for was NOT found. Go to <a href="/">home</a>
+		</section>
+
+		<aside>
+			{% include categories.html %}
+			{% include latest.html %}
+			<p class="rss-subscribe">subscribe <a href="{{ "/feed" | prepend: site.baseurl }}">via RSS</a></p>
+		</aside>
+	</div>
+
+</div>

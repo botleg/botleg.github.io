@@ -2,74 +2,68 @@
 layout: default
 type: home
 ---
-{% assign offset = paginator.page|minus:2|times:10|plus:10|minus:site.pinned %}
-<div class="home">
+{% assign offset = paginator.page|minus:1|times:7 %}
+{% assign feat = site.posts[offset] %}
+
 	{% if paginator.page == 1 %}
-	<div class="gallery autoplay items-{{ site.pinned }}">
-		{% for post in site.tags.popular limit:site.pinned %}
-		<div id="item-{{ forloop.index }}" class="control-operator"></div>
-		{% endfor %}
-
-		{% for post in site.tags.popular limit:site.pinned %}
-		<figure class="item" style="{{ post.bg }}">
-			<a class="head-link" href="{{ post.url | prepend: site.baseurl }}">
-			<article class="post-header">
-					<div class="header-content">
-						<h1 class="post-title">{{ post.title }}</h1>
-						<p>{{ post.summary }}</p>
-					</div>
-			</article>
-			</a>
-		</figure>
-		{% endfor %}
-
-		<div class="controls">
-			{% for post in site.tags.popular limit:site.pinned %}
-			<a href="#item-{{ forloop.index }}" class="control-button">•</a>
-			{% endfor %}
-		</div>
-	</div>
+	<header style="{{ feat.bg }}">
+		<section class="site-header">
+			<div class="wrapper">
+		
+				<a class="site-title" href="{{ site.baseurl }}/">{{ site.title | capitalize }}</a>
+		
+				<div id="search">
+					<form id="searchform">
+						<input type="text" placeholder="search" id="searchbox">
+					</form>
+				</div>
+			</div>
+		</section>
+		
+		<a class="head-link" href="{{ feat.url | prepend: site.baseurl }}">
+			<section class="post-header">
+				<div class="header-content">
+					<h5>FEATURED STORY</h5>
+					<h1 class="post-title">{{ feat.title }}</h1>
+					<p>{{ feat.summary }}</p>
+				</div>
+			</section>
+		</a>
+	</header>
+	{% else %}
+		{% include header.html %}
 	{% endif %}
 
+	{% assign offset = offset|plus:1 %}
 	<div class="wrapper">
-		<section>
-			<h1 class="page-heading">Latest Stories</h1>
+		<section class="post-content">
+			<h1 class="page-heading">LATEST STORIES</h1>
 			
 			<ul class="post-list">
-				{% if paginator.page == 1 %}
-					{% assign limit = 10|minus:site.pinned %}
-					{% for post in site.unpinned limit:limit %}
-					<li>
-						<a class="post-link" href="{{ post.url | prepend: site.baseurl }}">{{ post.title }}</a>
-						<span class="post-meta">{{ post.date | date: "%b %-d, %Y" }} | 
-						{% for cat in post.categories limit:3 %}
-							<a href="/categories/{{cat}}">{{cat}}</a>
-						{% endfor %}
-						</span>
-						<p>{{ post.summary }}</p>
-					</li>
+				{% for post in site.posts limit:6 offset:offset %}
+				<li>
+					<a class="post-link" href="{{ post.url | prepend: site.baseurl }}">{{ post.title }}</a>
+					<span class="post-meta">{{ post.date | date: "%b %-d, %Y" }} | 
+					{% for cat in post.categories limit:3 %}
+						<a href="/categories/{{cat}}">{{cat}}</a>
 					{% endfor %}
-				{% else %}
-					{% for post in site.unpinned limit:10 offset:offset %}
-						<li>
-							<a class="post-link" href="{{ post.url | prepend: site.baseurl }}">{{ post.title }}</a><span class="post-meta">{{ post.date | date: "%b %-d, %Y" }}</span>
-							<p>{{ post.summary }}</p>
-						</li>
-					{% endfor %}
-				{% endif %}
+					</span>
+					<p>{{ post.summary }}</p>
+				</li>
+				{% endfor %}
 			</ul>
 
 			<div class="pagination">
 				{% if paginator.total_pages > 1 %}
 					{% if paginator.previous_page %}
-					<a href="{{ paginator.previous_page_path | replace: 'index.html', '/' | prepend: site.baseurl | replace: '//', '/' }}" class="page-button previous active">Previous Page</a>
+					<a href="{{ paginator.previous_page_path | replace: 'index.html', '/' | prepend: site.baseurl | replace: '//', '/' }}" class="page-button previous active">Newer Stories</a>
 					{% else %}
-					<span class="page-button previous">Previous Page</span>
+					<span class="page-button previous">Newer Stories</span>
 					{% endif %}
 					{% if paginator.next_page %}
-					<a href="{{ paginator.next_page_path }}" class="page-button next active">Next Page</a>
+					<a href="{{ paginator.next_page_path }}" class="page-button next active">Older Stories</a>
 					{% else %}
-					<span class="page-button next">Next Page</span>
+					<span class="page-button next">Older Stories</span>
 					{% endif %}
 				{% endif %}
 			</div>

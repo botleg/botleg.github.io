@@ -3,7 +3,7 @@ summary: With Let's Encrypt create SSL certificates free of cost to serve your s
 title: HTTPS with Let's Encrypt and nginx
 layout: post
 categories: devops
-bg: "background:rgb(241, 196, 15) 25%;background-image: linear-gradient(90deg, rgb(241, 196, 15) 25%, rgb(231, 76, 60) 100%);background-image: -moz-linear-gradient(left, rgb(241, 196, 15) 25%, rgb(231, 76, 60) 100%);background-image: -webkit-linear-gradient(left, rgb(241, 196, 15) 25%, rgb(231, 76, 60) 100%);background-image: -o-linear-gradient(left, rgb(241, 196, 15) 25%, rgb(231, 76, 60) 100%);background-image: -ms-linear-gradient(left, rgb(241, 196, 15) 25%, rgb(231, 76, 60) 100%);"
+bg: "background:rgb(231, 76, 60);background-image: linear-gradient(90deg, rgb(231, 76, 60) 25%, rgb(241, 196, 15) 100%);background-image: -moz-linear-gradient(left, rgb(231, 76, 60) 25%, rgb(241, 196, 15) 100%);background-image: -webkit-linear-gradient(left, rgb(231, 76, 60) 25%, rgb(241, 196, 15) 100%);background-image: -o-linear-gradient(left, rgb(231, 76, 60) 25%, rgb(241, 196, 15) 100%);background-image: -ms-linear-gradient(left, rgb(231, 76, 60) 25%, rgb(241, 196, 15) 100%);"
 date:   2016-01-17 17:00:00
 tags: https letsencrypt ssl tls certificate authority nginx git popular
 ---

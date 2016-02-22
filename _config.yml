@@ -8,7 +8,6 @@ url: "https://botleg.com"
 github_username:  botleg
 permalink: /stories/:title/
 paginate: 10
-pinned: 3
 paginate_path: "/blog/:num"
 exclude: [Gemfile, Gemfile.lock, Rakefile, assets/js, assets/sass, assets/images/blog, gulpfile.js, package.json, '*.log', node_modules]
 keep_files: [assets, .git, CNAME, .nojekyll]
@@ -24,7 +23,7 @@ defaults:
       path: ""
       type: "posts"
     values:
-      bg: "background-image:-webkit-radial-gradient(50% 0%, circle, #8abb5d,#42736f);background-image:radial-gradient(circle at 50% 0%, #8abb5d,#42736f);"
+      bg: "background:rgb(155, 89, 182);background-image:linear-gradient(90deg, rgb(155, 89, 182) 25%, rgb(41, 128, 185) 100%);background-image:-moz-linear-gradient(left, rgb(155, 89, 182) 25%, rgb(41, 128, 185) 100%);background-image:webkit-linear-gradient(left, rgb(155, 89, 182) 25%, rgb(41, 128, 185) 100%);background-image:-o-linear-gradient(left, rgb(155, 89, 182) 25%, rgb(41, 128, 185) 100%);background-image:-ms-linear-gradient(left, rgb(155, 89, 182) 25%, rgb(41, 128, 185) 100%);"
 
 # Plugins
 gems:

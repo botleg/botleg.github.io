@@ -5,7 +5,7 @@ layout: post
 categories: cloud
 gh: https://github.com/botleg/docker-sloppy
 demo: http://botleg.sloppy.zone
-bg: "background:rgb(155, 89, 182) 25%;background-image:linear-gradient(90deg, rgb(155, 89, 182) 25%, rgb(41, 128, 185) 100%);background-image:-moz-linear-gradient(left, rgb(155, 89, 182) 25%, rgb(41, 128, 185) 100%);background-image:webkit-linear-gradient(left, rgb(155, 89, 182) 25%, rgb(41, 128, 185) 100%);background-image:-o-linear-gradient(left, rgb(155, 89, 182) 25%, rgb(41, 128, 185) 100%);background-image:-ms-linear-gradient(left, rgb(155, 89, 182) 25%, rgb(41, 128, 185) 100%);"
+bg: "background:rgb(155, 89, 182);background-image:linear-gradient(90deg, rgb(155, 89, 182) 25%, rgb(41, 128, 185) 100%);background-image:-moz-linear-gradient(left, rgb(155, 89, 182) 25%, rgb(41, 128, 185) 100%);background-image:webkit-linear-gradient(left, rgb(155, 89, 182) 25%, rgb(41, 128, 185) 100%);background-image:-o-linear-gradient(left, rgb(155, 89, 182) 25%, rgb(41, 128, 185) 100%);background-image:-ms-linear-gradient(left, rgb(155, 89, 182) 25%, rgb(41, 128, 185) 100%);"
 date:   2016-01-03 16:00:00
 tags: docker hub sloppy.io container node.js redis docker-compose dockerfile sloppy.json
 ---
