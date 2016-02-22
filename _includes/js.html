@@ -10,7 +10,7 @@
 </script>
 {% if page.type == 'search' %}
 <script async type="text/javascript" src="/assets/js/search.js"></script>
-{% elsif page.type == 'home' %}
+{% elsif page.type == 'home' or page.type == 'category' %}
 <script async type="text/javascript" src="/assets/js/home.js"></script>
 {% else %}
 <script async type="text/javascript" src="/assets/js/post.js"></script>

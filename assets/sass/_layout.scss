@@ -7,15 +7,15 @@
 }
 
 .site-title {
+    @include transition(none);
     float: left;
     font-size: 28px;
     line-height: 60px;
     margin-bottom: 0;
-    text-transform: lowercase;
+    text-transform: none;
 
-    &,
-    &:visited {
-        color: $grey-color-dark;
+    &, &:visited {
+        color: $grey-color-light;
     }
 }
 
@@ -23,18 +23,22 @@
     padding: 10px 15px 10px 0;
 
     #searchbox {
-        background: $grey-color url('/assets/images/search.svg') no-repeat;
+        background: $background-color url('/assets/images/search.svg') no-repeat;
         background-position: 8px center;
+        color: $grey-color-dark !important;
         background-size: 15px;
         border: 0;
         border-radius: 8px;
-        color: $background-color;
         float: right;
         font-size: 1em;
         height: 40px;
         line-height: 40px;
         max-width: 150px;
         padding: 5px 10px 5px 30px;
+
+        &::placeholder {
+            color: $grey-color;
+        }
 
         &:focus {
             outline: none;
@@ -145,7 +149,9 @@
     margin-right: 30px;
 }
 
-
+.results {
+    padding-top: 20px;
+}
 
 /**
  * Posts
