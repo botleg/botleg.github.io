@@ -61,7 +61,8 @@
  * Site footer
  */
 .site-footer {
-    border-top: 1px solid $grey-color-light;
+    background-color: $grey-color-dark;
+    color: $grey-color-footer;
     padding: $spacing-unit 0;
 }
 
@@ -79,7 +80,6 @@
 .footer-col-wrapper {
     @include clearfix;
     @include outer-container;
-    color: $grey-color;
     font-size: 15px;
 }
 
@@ -93,13 +93,13 @@
     }
 
     @include media($medium) {
-        @include span-columns(4);
+        @include span-columns(3);
     }
 }
 
 .footer-col-2 {
     @include media($medium) {
-        @include span-columns(2);
+        @include span-columns(3);
     }
 }
 
@@ -234,6 +234,10 @@ header {
 
     &.gh { background-image: url('/assets/images/browser.svg');}
     &.code { background-image: url('/assets/images/GitHub-Mark-Light-32px.png');}
+}
+
+.footer-icon {
+    padding: 0 10px 0 15px;
 }
 
 .post-title {

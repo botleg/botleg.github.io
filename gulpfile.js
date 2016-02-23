@@ -31,8 +31,8 @@ gulp.task('compass', function() {
 			css: '_site/assets',
 			require: ['bourbon', 'neat']
 		}))
-		.pipe(minify())
 		.on('error', gutil.log)
+		.pipe(minify())
 		.pipe(gulp.dest('_site/assets'))
 		.pipe(sync.reload({stream:true}));
 });
