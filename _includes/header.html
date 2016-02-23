@@ -5,6 +5,11 @@
 			<a class="site-title" href="{{ site.baseurl }}/">{{ site.title | capitalize }}</a>
 	
 			<div id="search">
+				<a href="{{ "/feed/index.xml" | prepend: site.baseurl }}"><span class="rss-icon">
+					<svg viewBox="0 0 24 24" width="30px" height="30px">
+						<use xlink:href="/assets/images/sprites.svg#rss"></use>
+					</svg>
+				</span></a>
 				<form id="searchform">
 					<input type="text" placeholder="search" id="searchbox">
 				</form>

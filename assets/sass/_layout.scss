@@ -55,6 +55,25 @@
             max-width: 250px;
         }
     }
+
+    .rss-icon {
+        display: none;
+        float: right;
+        padding: 5px 0 0 10px;
+
+        @include media($small) {
+            display: block;
+        }
+
+        svg {
+            @include transition(fill .2s ease-in 0s);
+            fill: $background-color;
+
+            &:hover {
+                fill: darken($brand-color, 50%);
+            }
+        }
+    }
 }
 
 /**
@@ -238,6 +257,10 @@ header {
 
 .footer-icon {
     padding: 0 10px 0 15px;
+
+    svg {
+        fill: $grey-color-footer;
+    }
 }
 
 .post-title {
@@ -288,10 +311,6 @@ header {
             font-size: 18px;
         }
     }
-}
-
-.post-content {
-    margin-top: 20px;
 }
 
 .aside {

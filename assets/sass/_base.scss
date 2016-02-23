@@ -185,6 +185,19 @@ pre {
         padding: 0 $spacing-unit/4;
     }
 
+    .home-content {
+        margin-top: 20px;
+        @include outer-container;
+
+        @include media($small) {
+            @include outer-container(90%);
+        }
+
+        @include media($medium) {
+            @include outer-container(900px);
+        }
+    }
+
     section {
         @include media($medium) {
             @include span-columns(3 of 4);

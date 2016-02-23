@@ -13,6 +13,11 @@ type: home
 				<a class="site-title" href="{{ site.baseurl }}/">{{ site.title | capitalize }}</a>
 		
 				<div id="search">
+					<a href="{{ "/feed/index.xml" | prepend: site.baseurl }}"><span class="rss-icon">
+						<svg viewBox="0 0 24 24" width="30px" height="30px">
+							<use xlink:href="/assets/images/sprites.svg#rss"></use>
+						</svg></span>
+					</a>
 					<form id="searchform">
 						<input type="text" placeholder="search" id="searchbox">
 					</form>
@@ -36,7 +41,7 @@ type: home
 
 	{% assign offset = offset|plus:1 %}
 	<div class="wrapper">
-		<section class="post-content">
+		<div class="home-content">
 			<h1 class="page-heading">LATEST STORIES</h1>
 			
 			<ul class="post-list">
@@ -67,12 +72,7 @@ type: home
 					{% endif %}
 				{% endif %}
 			</div>
-		</section>
-
-		<aside>
-			{% include categories.html %}
-			<p class="rss-subscribe">subscribe <a href="{{ "/feed" | prepend: site.baseurl }}">via RSS</a></p>
-		</aside>
+		</div>
 	</div>
 
 </div>
