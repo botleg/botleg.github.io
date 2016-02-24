@@ -9,10 +9,11 @@
 .site-title {
     @include transition(none);
     float: left;
+    letter-spacing: 1px;
+    font-family: $header-font-family;
     font-size: 28px;
     line-height: 60px;
     margin-bottom: 0;
-    text-transform: none;
 
     &, &:visited {
         color: $grey-color-light;
@@ -83,11 +84,21 @@
     background-color: $grey-color-dark;
     color: $grey-color-footer;
     padding: $spacing-unit 0;
+
+    a {
+        color: $heading-color;
+
+        &:hover {
+            color: $grey-color-dim;
+        }
+    }
 }
 
 .footer-heading {
     font-size: 18px;
     margin-bottom: $spacing-unit / 2;
+    letter-spacing: 1px;
+    font-family: $header-font-family;
 }
 
 .contact-list,
@@ -142,6 +153,12 @@
 .page-heading {
     margin-top: 20px;
     font-size: 20px;
+}
+
+.sans-bold {
+    letter-spacing: 1px;
+    font-weight: 600;
+    color: $heading-color; 
 }
 
 .page-header {
@@ -218,6 +235,11 @@ header {
         text-align: center;
         max-width: 600px;
 
+        h5 {
+            letter-spacing: 1px;
+            font-weight: 600;
+        }
+
         p {
             display: none;
 
@@ -266,7 +288,6 @@ header {
 .post-title {
     color: $grey-color-light;
     font-size: 36px;
-    letter-spacing: -1px;
     line-height: 1.2;
 
     @include media($small) {
@@ -285,32 +306,29 @@ header {
     }
 }
 
+.post-title, .post-link, .page-title {
+    letter-spacing: 0.5px;
+    font-family: $header-font-family;
+}
+
 .post-content, .page-content {
     margin-bottom: $spacing-unit;
 
     h2 {
+        margin: 20px 0 0 0;
         font-size: 32px;
+        font-family: $header-font-family;
+        line-height: $header-line-height;
+        color: $heading-color;
 
         @include media($medium) {
             font-size: 28px;
         }
     }
+}
 
-    h3 {
-        font-size: 26px;
-
-        @include media($medium) {
-            font-size: 22px;
-        }
-    }
-
-    h4 {
-        font-size: 20px;
-
-        @include media($medium) {
-            font-size: 18px;
-        }
-    }
+.post-content {
+    margin-top: 20px;
 }
 
 .aside {

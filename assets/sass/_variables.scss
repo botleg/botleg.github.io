@@ -2,16 +2,21 @@
 $max-width: 960px !global;
 $grid-columns: 12 !global;
 
-$base-font-family: Helvetica, Arial, sans-serif;
+$base-font-family: Sans-Serif;
 $base-font-size:   18px;
 $small-font-size:  $base-font-size * .875;
 $base-line-height: 1.6;
+
+$header-font-family: Serif;
+$header-font-size:   32px;
+$header-line-height: 2;
 
 $spacing-unit:     20px;
 
 $text-color:       #111;
 $background-color: #fdfdfd;
 $brand-color:      #2a7ae2;
+$heading-color:    rgb(26, 188, 156);
 
 $grey-color:       #828282;
 $grey-color-light: lighten($grey-color, 40%);

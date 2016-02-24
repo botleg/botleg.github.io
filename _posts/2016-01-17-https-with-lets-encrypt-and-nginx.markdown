@@ -5,7 +5,7 @@ layout: post
 categories: devops
 bg: "background:rgb(231, 76, 60);background-image: linear-gradient(90deg, rgb(231, 76, 60) 25%, rgb(241, 196, 15) 100%);background-image: -moz-linear-gradient(left, rgb(231, 76, 60) 25%, rgb(241, 196, 15) 100%);background-image: -webkit-linear-gradient(left, rgb(231, 76, 60) 25%, rgb(241, 196, 15) 100%);background-image: -o-linear-gradient(left, rgb(231, 76, 60) 25%, rgb(241, 196, 15) 100%);background-image: -ms-linear-gradient(left, rgb(231, 76, 60) 25%, rgb(241, 196, 15) 100%);"
 date:   2016-01-17 17:00:00
-tags: https letsencrypt ssl tls certificate authority nginx git popular
+tags: https letsencrypt ssl tls certificate authority nginx git
 ---
 HTTPS is a secure protocol for the internet. Unlike the communication in HTTP, which happens in plain-text, the data transferred between the server and the client with HTTPS is encrypted. HTTPS also verifies the identity of the website we are accessing with a `SSL/TLS` certificate. It was initially used in online payment website, but in the recent age of privacy, it is deemed mandatory. That's where [Let's Encrypt](https://letsencrypt.org/) comes in.
 

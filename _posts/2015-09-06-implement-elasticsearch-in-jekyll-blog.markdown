@@ -5,7 +5,7 @@ layout: post
 gh: https://github.com/botleg/elasticsearch-jekyll/
 demo: http://elastic.jekyll.botleg.com/
 categories: jekyll
-tags: elasticsearch appbase.io lucene github-pages node.js koa openshift webhooks javascript markdown ajax popular
+tags: elasticsearch appbase.io lucene github-pages node.js koa openshift webhooks javascript markdown ajax
 date:   2015-09-06 11:00:00
 bg: "background:#f46b45;background:-webkit-linear-gradient(90deg, #f46b45 10%, #eea849 90%);background:-moz-linear-gradient(90deg, #f46b45 10%, #eea849 90%);background:-ms-linear-gradient(90deg, #f46b45 10%, #eea849 90%);background:-o-linear-gradient(90deg, #f46b45 10%, #eea849 90%);background:linear-gradient(90deg, #f46b45 10%, #eea849 90%);"
 ---

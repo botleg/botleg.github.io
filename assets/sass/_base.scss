@@ -43,19 +43,9 @@ img {
     vertical-align: middle;
 }
 
-.image-wrapper {
-    text-align: center;
-
-    .image-caption {
-        color: $grey-color;
-        font-size: $small-font-size;
-        margin-top: $spacing-unit / 6;
-    }
-}
-
 .center-image {
     display: block;
-    margin: 0 auto;
+    margin: 30px auto 0 auto;
     max-width: 100%;
     vertical-align: middle;
 }
@@ -215,7 +205,7 @@ pre {
 }
 
 .footer-wrap {
-    @include outer-container;
+    @include outer-container(900px);
     padding: 0 $spacing-unit/2;        
 
     @include media($medium) {

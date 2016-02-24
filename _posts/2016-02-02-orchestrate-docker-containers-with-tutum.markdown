@@ -6,7 +6,7 @@ categories: devops
 gh: https://github.com/botleg/tutum-nodejs-redis
 bg: "background:rgb(52, 73, 94) 25%;background-image: linear-gradient(90deg, rgb(52, 73, 94) 25%, rgb(41, 128, 185) 100%);background-image: -moz-linear-gradient(left, rgb(52, 73, 94) 25%, rgb(41, 128, 185) 100%);background-image: -webkit-linear-gradient(left, rgb(52, 73, 94) 25%, rgb(41, 128, 185) 100%);background-image: -o-linear-gradient(left, rgb(52, 73, 94) 25%, rgb(41, 128, 185) 100%);background-image: -ms-linear-gradient(left, rgb(52, 73, 94) 25%, rgb(41, 128, 185) 100%);"
 date:   2016-02-03 01:00:00
-tags: tutum docker container haproxy node.js redis scale load balance deploy popular
+tags: tutum docker container haproxy node.js redis scale load balance deploy
 ---
 [Tutum](https://www.tutum.co/) simplifies the process of hosting Docker containers. We can connect Tutum to our cloud provider and create node clusters. We can then deploy, scale and link Docker containers from the Tutum interface. In this article, we will see how to deploy a Node.js application with Redis as the data store. We will also scale this application and use load balacing. The entire code for this application can be found [here](https://github.com/botleg/tutum-nodejs-redis).
 
