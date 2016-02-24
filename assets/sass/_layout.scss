@@ -25,6 +25,7 @@
 
     #searchbox {
         background: $background-color url('/assets/images/search.svg') no-repeat;
+        display: block;
         background-position: 8px center;
         color: $grey-color-dark !important;
         background-size: 15px;
