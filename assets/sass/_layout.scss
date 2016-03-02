@@ -192,6 +192,9 @@
  */
 header {
     &:before, &:after {
+        -moz-backface-visibility: hidden;
+        -webkit-backface-visibility: hidden;
+        backface-visibility: hidden;
         content: '';
         position: absolute;
         left: 0;
