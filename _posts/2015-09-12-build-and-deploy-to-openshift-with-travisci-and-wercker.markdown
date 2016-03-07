@@ -159,8 +159,8 @@ Now we get to the deployment pipeline. Go to Wercker settings for your applicati
 Create a new Deploy Target from Wercker settings named `openshift` with auto deploy checked for `master` branch. Then add the following environment variable:
 
 * `OPENSHIFT_SSH_KEY`: It is a ssh key pair and choose the one that we had just created.
-* `OPENSHIFT_GIT_URL`: The application url from openshift without `http://`. Use the url with `rhcloud.com` domain even if you are using a custom domain.
-* `OPENSHIFT_HOST`: It is git url that we get from the OpenShift application page.
+* `OPENSHIFT_HOST`: The application url from openshift without `http://`. Use the url with `rhcloud.com` domain even if you are using a custom domain.
+* `OPENSHIFT_GIT_URL`: It is git url that we get from the OpenShift application page.
 * `OPENSHIFT_BRANCH`: The branch to which you want to upload to. It is generally `master` branch.
 * `EMAIL_ADDRESS`: Your email address in GitHub.
 * `USER_NAME`: Your username in GitHub.

@@ -14,13 +14,15 @@ dl, dd, ol, ul, figure {
 body {
     background-color: $background-color;
     color: $text-color;
+    display: flex;
+    flex-direction: column;
     font-family: $base-font-family;
     font-size: $base-font-size;
     font-weight: 300;
     line-height: $base-line-height;
+    min-height: 100vh;
     text-size-adjust: 100%;
 }
-
 
 
 /**

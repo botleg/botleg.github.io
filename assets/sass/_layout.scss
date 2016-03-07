@@ -147,10 +147,6 @@
 /**
  * Page content
  */
-.page-content {
-    padding: 0 0 $spacing-unit;
-}
-
 .page-heading {
     margin-top: 20px;
     font-size: 20px;
@@ -333,6 +329,11 @@ header {
 
 .post-content {
     margin-top: 20px;
+}
+
+.page-content {
+    flex: 1;
+    padding: 0 0 $spacing-unit;
 }
 
 .aside {
