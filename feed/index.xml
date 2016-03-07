@@ -5,8 +5,8 @@
     <description>Hi, botleg is a blog where you can find tutorials and techniques in web development, devops, databases, cloud computing and anything related to technology.</description>
     <link>https://botleg.com/</link>
     <atom:link href="https://botleg.com/feed" rel="self" type="application/rss+xml"/>
-    <pubDate>Wed, 02 Mar 2016 19:48:14 +0530</pubDate>
-    <lastBuildDate>Wed, 02 Mar 2016 19:48:14 +0530</lastBuildDate>
+    <pubDate>Mon, 07 Mar 2016 10:30:32 +0530</pubDate>
+    <lastBuildDate>Mon, 07 Mar 2016 10:30:32 +0530</lastBuildDate>
     <generator>Jekyll v3.0.1</generator>
     
       <item>
@@ -1434,8 +1434,8 @@ npm install --save cookie&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
 
 &lt;ul&gt;
   &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;OPENSHIFT_SSH_KEY&lt;/code&gt;: It is a ssh key pair and choose the one that we had just created.&lt;/li&gt;
-  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;OPENSHIFT_GIT_URL&lt;/code&gt;: The application url from openshift without &lt;code class=&quot;highlighter-rouge&quot;&gt;http://&lt;/code&gt;. Use the url with &lt;code class=&quot;highlighter-rouge&quot;&gt;rhcloud.com&lt;/code&gt; domain even if you are using a custom domain.&lt;/li&gt;
-  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;OPENSHIFT_HOST&lt;/code&gt;: It is git url that we get from the OpenShift application page.&lt;/li&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;OPENSHIFT_HOST&lt;/code&gt;: The application url from openshift without &lt;code class=&quot;highlighter-rouge&quot;&gt;http://&lt;/code&gt;. Use the url with &lt;code class=&quot;highlighter-rouge&quot;&gt;rhcloud.com&lt;/code&gt; domain even if you are using a custom domain.&lt;/li&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;OPENSHIFT_GIT_URL&lt;/code&gt;: It is git url that we get from the OpenShift application page.&lt;/li&gt;
   &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;OPENSHIFT_BRANCH&lt;/code&gt;: The branch to which you want to upload to. It is generally &lt;code class=&quot;highlighter-rouge&quot;&gt;master&lt;/code&gt; branch.&lt;/li&gt;
   &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;EMAIL_ADDRESS&lt;/code&gt;: Your email address in GitHub.&lt;/li&gt;
   &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;USER_NAME&lt;/code&gt;: Your username in GitHub.&lt;/li&gt;
