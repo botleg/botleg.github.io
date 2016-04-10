@@ -5,9 +5,385 @@
     <description>Hi, botleg is a blog where you can find tutorials and techniques in web development, devops, databases, cloud computing and anything related to technology.</description>
     <link>https://botleg.com/</link>
     <atom:link href="https://botleg.com/feed" rel="self" type="application/rss+xml"/>
-    <pubDate>Tue, 08 Mar 2016 01:27:04 +0530</pubDate>
-    <lastBuildDate>Tue, 08 Mar 2016 01:27:04 +0530</lastBuildDate>
+    <pubDate>Sun, 10 Apr 2016 19:59:00 +0530</pubDate>
+    <lastBuildDate>Sun, 10 Apr 2016 19:59:00 +0530</lastBuildDate>
     <generator>Jekyll v3.0.1</generator>
+    
+      <item>
+        <title>Building Blue-Green Deployment with Docker</title>
+        <author><name>Hanzel Jesheen</name></author>
+        <description>&lt;p&gt;Blue-Green Deployment is a strategy to release new version of the app without downtime. The basic idea behind this technique involves using two identical production environments, named &lt;code class=&quot;highlighter-rouge&quot;&gt;Blue&lt;/code&gt; and &lt;code class=&quot;highlighter-rouge&quot;&gt;Green&lt;/code&gt;. At any time, only one of these environment is live and serving the production traffic. The other one is used to test newer version or for roll-back.&lt;/p&gt;
+
+&lt;p&gt;Let us assume that the current live production environment is Blue. When the new version is ready, we can deploy it to the non-production environment - Green. None of our users can see this new version as the live environment is still Blue. We can test the new version from the Green environment now. If this version is ready for release, we switch the production environment to Green and the users can now see the new release. Now the live version in at Green and staging can be done in Blue. If there is some error with the new release in Green, it is easy to roll-back to previous version by just switching the production environment back to Blue. Only thing to note here is that the switching is seamless.&lt;/p&gt;
+
+&lt;p&gt;In this article, we will build a blue-green deployment system with Dockers. We will create and control a cluster of nodes with Docker Swarm. We will build a Blue-Green deployment docker image that creates two environment, each running different versions of same test app. We will also see how to switch the live environment with out Docker image.&lt;/p&gt;
+
+&lt;p&gt;The docker image for Blue-Green deployment is &lt;a href=&quot;https://hub.docker.com/r/hanzel/blue-green/&quot;&gt;hanzel/blue-green&lt;/a&gt; and its code can be found &lt;a href=&quot;https://github.com/botleg/blue-green&quot;&gt;here&lt;/a&gt;. Also, the docker image for the test application is &lt;a href=&quot;https://hub.docker.com/r/hanzel/nginx-html/&quot;&gt;hanzel/nginx-html&lt;/a&gt; and its code can be found &lt;a href=&quot;https://github.com/botleg/nginx-html&quot;&gt;here&lt;/a&gt;.&lt;/p&gt;
+
+&lt;h2 id=&quot;prerequisites&quot;&gt;Prerequisites&lt;/h2&gt;
+
+&lt;p&gt;We will be using &lt;a href=&quot;https://docs.docker.com/machine/&quot;&gt;Docker Machine&lt;/a&gt; to create and manage remote hosts as a swarm. With Docker Machine, you can create hosts on your local machine or your cloud provider. Check &lt;a href=&quot;https://docs.docker.com/machine/drivers/&quot;&gt;this link&lt;/a&gt; to see the drivers supported by Docker Machine.&lt;/p&gt;
+
+&lt;p&gt;You need to have the following installed in you local computer:&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;Docker&lt;/code&gt;: version &amp;gt;= 1.10, to support Docker Compose File version 2 and Multi-Host networking.&lt;/li&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;Docker Machine&lt;/code&gt;: version &amp;gt;= 0.6&lt;/li&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;Docker Compose&lt;/code&gt;: version &amp;gt;= 1.6, to support Docker Compose file version 2&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;You can create the virtual hosts in you local system if you have &lt;a href=&quot;https://www.virtualbox.org/wiki/Downloads&quot;&gt;VirtualBox&lt;/a&gt; installed. For this demonstration, I will be using &lt;a href=&quot;https://www.digitalocean.com/&quot;&gt;DigitalOcean&lt;/a&gt;.&lt;/p&gt;
+
+&lt;h2 id=&quot;creating-the-swarm&quot;&gt;Creating the Swarm&lt;/h2&gt;
+
+&lt;p&gt;The first thing we need to do is to create the Docker Swarm using Docker Machine and set it up. I have explained how to do this in my previous article, &lt;a href=&quot;/stories/load-balancing-with-docker-swarm/&quot;&gt;Load Balancing with Docker Swarm&lt;/a&gt;. Follow the steps from &lt;code class=&quot;highlighter-rouge&quot;&gt;Initial Setup&lt;/code&gt; to &lt;code class=&quot;highlighter-rouge&quot;&gt;The Swarm&lt;/code&gt; of that article to create and setup the Swarm.&lt;/p&gt;
+
+&lt;p&gt;Once the swarm is setup, you can see the hosts with &lt;code class=&quot;highlighter-rouge&quot;&gt;docker-machine ls&lt;/code&gt; command. The output of this command must look something like this.&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;NAME     ACTIVE      DRIVER         STATE     URL                          SWARM             DOCKER
+consul   -           digitalocean   Running   tcp://104.236.235.185:2376                     v1.10.1
+master   &lt;span class=&quot;k&quot;&gt;*&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;swarm&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;   digitalocean   Running   tcp://159.203.119.37:2376    master &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;master&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;   v1.10.1
+slave    -           digitalocean   Running   tcp://45.55.185.18:2376      master            v1.10.1 &lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;h2 id=&quot;test-app&quot;&gt;Test App&lt;/h2&gt;
+
+&lt;p&gt;To demonstrate blue-green deployment, we will deploy different versions of our test app. The docker image for this app is &lt;a href=&quot;https://hub.docker.com/r/hanzel/nginx-html/&quot;&gt;hanzel/nginx-html&lt;/a&gt; and the code for it can be found &lt;a href=&quot;https://github.com/botleg/nginx-html&quot;&gt;here&lt;/a&gt;. The docker image contains the &lt;code class=&quot;highlighter-rouge&quot;&gt;nginx&lt;/code&gt; webserver that serves a static HTML page at port &lt;code class=&quot;highlighter-rouge&quot;&gt;80&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;The HTML page contains the current version or tag of the docker image. So the image &lt;code class=&quot;highlighter-rouge&quot;&gt;hanzel/nginx-html:1&lt;/code&gt; serves the HTML page with &lt;code class=&quot;highlighter-rouge&quot;&gt;Version 1&lt;/code&gt;, &lt;code class=&quot;highlighter-rouge&quot;&gt;hanzel/nginx-html:2&lt;/code&gt; serves the HTML page with &lt;code class=&quot;highlighter-rouge&quot;&gt;Version 2&lt;/code&gt; and &lt;code class=&quot;highlighter-rouge&quot;&gt;hanzel/nginx-html:3&lt;/code&gt; serves the HTML page with &lt;code class=&quot;highlighter-rouge&quot;&gt;Version 3&lt;/code&gt;.&lt;/p&gt;
+
+&lt;h2 id=&quot;consul-template&quot;&gt;Consul Template&lt;/h2&gt;
+
+&lt;p&gt;Now, we are going to build the image that does the blue-green deployment. It uses &lt;a href=&quot;https://www.nginx.com/&quot;&gt;nginx&lt;/a&gt; webserver for load balancing and &lt;a href=&quot;https://github.com/hashicorp/consul-template&quot;&gt;consul-template&lt;/a&gt; to manage nginx configuration dynamically. The docker image for this app is &lt;a href=&quot;https://hub.docker.com/r/hanzel/blue-green/&quot;&gt;hanzel/blue-green&lt;/a&gt; and the code for it can be found &lt;a href=&quot;https://github.com/botleg/blue-green&quot;&gt;here&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;If the current live environment is &lt;code class=&quot;highlighter-rouge&quot;&gt;blue&lt;/code&gt;, we can access that at port 80 of the container. The staging environment, &lt;code class=&quot;highlighter-rouge&quot;&gt;green&lt;/code&gt; in this case, can be accessed from the port 8080 of the container. We will be able to switch the live environment anytime with just one command. If we switch the live environment to &lt;code class=&quot;highlighter-rouge&quot;&gt;green&lt;/code&gt;, then we can access the live &lt;code class=&quot;highlighter-rouge&quot;&gt;green&lt;/code&gt; environment at port 80 and staging &lt;code class=&quot;highlighter-rouge&quot;&gt;blue&lt;/code&gt; environment at port 8080. This is how the image facilitates blue-green deployment.&lt;/p&gt;
+
+&lt;p&gt;We have used the &lt;code class=&quot;highlighter-rouge&quot;&gt;registrator&lt;/code&gt; image to register our running docker images to &lt;code class=&quot;highlighter-rouge&quot;&gt;consul&lt;/code&gt;. Now, &lt;code class=&quot;highlighter-rouge&quot;&gt;consul-template&lt;/code&gt; will read these and create custom configuration of &lt;code class=&quot;highlighter-rouge&quot;&gt;nginx&lt;/code&gt;. So, we need to create a template of nginx configuration. This file will be called &lt;code class=&quot;highlighter-rouge&quot;&gt;default.ctmpl&lt;/code&gt; and it looks like this.&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-conf&quot; data-lang=&quot;conf&quot;&gt;{{$&lt;span class=&quot;n&quot;&gt;blue&lt;/span&gt;  := &lt;span class=&quot;n&quot;&gt;env&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;BLUE_NAME&quot;&lt;/span&gt;}}
+{{$&lt;span class=&quot;n&quot;&gt;green&lt;/span&gt; := &lt;span class=&quot;n&quot;&gt;env&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;GREEN_NAME&quot;&lt;/span&gt;}}
+{{$&lt;span class=&quot;n&quot;&gt;live&lt;/span&gt;  := &lt;span class=&quot;n&quot;&gt;file&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;/var/live&quot;&lt;/span&gt;}}
+&lt;span class=&quot;n&quot;&gt;worker_processes&lt;/span&gt;  &lt;span class=&quot;m&quot;&gt;1&lt;/span&gt;;
+
+&lt;span class=&quot;n&quot;&gt;events&lt;/span&gt; {
+    &lt;span class=&quot;n&quot;&gt;worker_connections&lt;/span&gt;  &lt;span class=&quot;m&quot;&gt;1024&lt;/span&gt;;
+}
+
+&lt;span class=&quot;n&quot;&gt;http&lt;/span&gt; {
+  &lt;span class=&quot;n&quot;&gt;upstream&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;blue&lt;/span&gt; {
+    &lt;span class=&quot;n&quot;&gt;least_conn&lt;/span&gt;;
+    {{&lt;span class=&quot;n&quot;&gt;range&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;service&lt;/span&gt; $&lt;span class=&quot;n&quot;&gt;blue&lt;/span&gt;}}
+    &lt;span class=&quot;n&quot;&gt;server&lt;/span&gt; {{.&lt;span class=&quot;n&quot;&gt;Address&lt;/span&gt;}}:{{.&lt;span class=&quot;n&quot;&gt;Port&lt;/span&gt;}} &lt;span class=&quot;n&quot;&gt;max_fails&lt;/span&gt;=&lt;span class=&quot;m&quot;&gt;3&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;fail_timeout&lt;/span&gt;=&lt;span class=&quot;m&quot;&gt;60&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;weight&lt;/span&gt;=&lt;span class=&quot;m&quot;&gt;1&lt;/span&gt;;{{&lt;span class=&quot;n&quot;&gt;else&lt;/span&gt;}}
+    &lt;span class=&quot;n&quot;&gt;server&lt;/span&gt; &lt;span class=&quot;m&quot;&gt;127&lt;/span&gt;.&lt;span class=&quot;m&quot;&gt;0&lt;/span&gt;.&lt;span class=&quot;m&quot;&gt;0&lt;/span&gt;.&lt;span class=&quot;m&quot;&gt;1&lt;/span&gt;:&lt;span class=&quot;m&quot;&gt;55000&lt;/span&gt;;{{&lt;span class=&quot;n&quot;&gt;end&lt;/span&gt;}}
+  }
+
+  &lt;span class=&quot;n&quot;&gt;upstream&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;green&lt;/span&gt; {
+    &lt;span class=&quot;n&quot;&gt;least_conn&lt;/span&gt;;
+    {{&lt;span class=&quot;n&quot;&gt;range&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;service&lt;/span&gt; $&lt;span class=&quot;n&quot;&gt;green&lt;/span&gt;}}
+    &lt;span class=&quot;n&quot;&gt;server&lt;/span&gt; {{.&lt;span class=&quot;n&quot;&gt;Address&lt;/span&gt;}}:{{.&lt;span class=&quot;n&quot;&gt;Port&lt;/span&gt;}} &lt;span class=&quot;n&quot;&gt;max_fails&lt;/span&gt;=&lt;span class=&quot;m&quot;&gt;3&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;fail_timeout&lt;/span&gt;=&lt;span class=&quot;m&quot;&gt;60&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;weight&lt;/span&gt;=&lt;span class=&quot;m&quot;&gt;1&lt;/span&gt;;{{&lt;span class=&quot;n&quot;&gt;else&lt;/span&gt;}}
+    &lt;span class=&quot;n&quot;&gt;server&lt;/span&gt; &lt;span class=&quot;m&quot;&gt;127&lt;/span&gt;.&lt;span class=&quot;m&quot;&gt;0&lt;/span&gt;.&lt;span class=&quot;m&quot;&gt;0&lt;/span&gt;.&lt;span class=&quot;m&quot;&gt;1&lt;/span&gt;:&lt;span class=&quot;m&quot;&gt;55000&lt;/span&gt;;{{&lt;span class=&quot;n&quot;&gt;end&lt;/span&gt;}}
+  }
+
+  &lt;span class=&quot;n&quot;&gt;server&lt;/span&gt; {
+    &lt;span class=&quot;n&quot;&gt;listen&lt;/span&gt; &lt;span class=&quot;m&quot;&gt;80&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;default&lt;/span&gt;;
+
+    &lt;span class=&quot;n&quot;&gt;location&lt;/span&gt; / {
+      {{&lt;span class=&quot;n&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;eq&lt;/span&gt; $&lt;span class=&quot;n&quot;&gt;live&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;blue&quot;&lt;/span&gt;}}
+      &lt;span class=&quot;n&quot;&gt;proxy_pass&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;http&lt;/span&gt;://&lt;span class=&quot;n&quot;&gt;blue&lt;/span&gt;;
+      {{&lt;span class=&quot;n&quot;&gt;else&lt;/span&gt;}}
+      &lt;span class=&quot;n&quot;&gt;proxy_pass&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;http&lt;/span&gt;://&lt;span class=&quot;n&quot;&gt;green&lt;/span&gt;;
+      {{&lt;span class=&quot;n&quot;&gt;end&lt;/span&gt;}}
+    }
+  }
+
+  &lt;span class=&quot;n&quot;&gt;server&lt;/span&gt; {
+    &lt;span class=&quot;n&quot;&gt;listen&lt;/span&gt; &lt;span class=&quot;m&quot;&gt;8080&lt;/span&gt;;
+
+    &lt;span class=&quot;n&quot;&gt;location&lt;/span&gt; / {
+      {{&lt;span class=&quot;n&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;eq&lt;/span&gt; $&lt;span class=&quot;n&quot;&gt;live&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;blue&quot;&lt;/span&gt;}}
+      &lt;span class=&quot;n&quot;&gt;proxy_pass&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;http&lt;/span&gt;://&lt;span class=&quot;n&quot;&gt;green&lt;/span&gt;;
+      {{&lt;span class=&quot;n&quot;&gt;else&lt;/span&gt;}}
+      &lt;span class=&quot;n&quot;&gt;proxy_pass&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;http&lt;/span&gt;://&lt;span class=&quot;n&quot;&gt;blue&lt;/span&gt;;
+      {{&lt;span class=&quot;n&quot;&gt;end&lt;/span&gt;}}
+    }
+  }
+}&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;First of all, we set three variables:&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;blue&lt;/code&gt;: The docker service name of the blue environment, taken from environment variable &lt;code class=&quot;highlighter-rouge&quot;&gt;BLUE_NAME&lt;/code&gt;.&lt;/li&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;green&lt;/code&gt;: The docker service name of the green environment, taken from environment variable &lt;code class=&quot;highlighter-rouge&quot;&gt;GREEN_NAME&lt;/code&gt;.&lt;/li&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;live&lt;/code&gt;: Current live environment, &lt;code class=&quot;highlighter-rouge&quot;&gt;blue&lt;/code&gt; or &lt;code class=&quot;highlighter-rouge&quot;&gt;green&lt;/code&gt;, taken from the file &lt;code class=&quot;highlighter-rouge&quot;&gt;/var/live&lt;/code&gt;.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;We will store the current live environment, &lt;code class=&quot;highlighter-rouge&quot;&gt;blue&lt;/code&gt; or &lt;code class=&quot;highlighter-rouge&quot;&gt;green&lt;/code&gt;, in the file &lt;code class=&quot;highlighter-rouge&quot;&gt;/var/live&lt;/code&gt;. We cannot use environment variable for this beacuse we cannot globally change the value of environment variable from inside a running docker image. So we write the current live environment, while switching, to the file and read its content from inside consul-template.&lt;/p&gt;
+
+&lt;p&gt;Inside the http block, we create an upstream block for &lt;code class=&quot;highlighter-rouge&quot;&gt;blue&lt;/code&gt; and &lt;code class=&quot;highlighter-rouge&quot;&gt;green&lt;/code&gt;. Inside each of this upstream block, we specify the load balancing configuration for each service. The &lt;code class=&quot;highlighter-rouge&quot;&gt;least_conn&lt;/code&gt; line causes nginx is to route traffic to the least connected instance. We need to generate &lt;code class=&quot;highlighter-rouge&quot;&gt;server&lt;/code&gt; configuration lines for each instance of the service currently running. This is done by the code blocks, &lt;code class=&quot;highlighter-rouge&quot;&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;{range&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;err&quot;&gt;service&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;err&quot;&gt;$blue&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;}...&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;{end&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;}&lt;/span&gt;&lt;/code&gt; and &lt;code class=&quot;highlighter-rouge&quot;&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;{range&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;err&quot;&gt;service&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;err&quot;&gt;$blue&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;}...&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;{end&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;}&lt;/span&gt;&lt;/code&gt;. The code between these directives are repeated for each instance of the service running with &lt;code class=&quot;highlighter-rouge&quot;&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;{.Address&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;}&lt;/span&gt;&lt;/code&gt; replaced by the address and &lt;code class=&quot;highlighter-rouge&quot;&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;{.Port&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;}&lt;/span&gt;&lt;/code&gt; replaced by its port of that instance. If there is no instance of any service, we have the default &lt;code class=&quot;highlighter-rouge&quot;&gt;server 127.0.0.1:55000;&lt;/code&gt; line that causes an error.&lt;/p&gt;
+
+&lt;p&gt;Next we have the server block that is listening to the port 80. If the value of the &lt;code class=&quot;highlighter-rouge&quot;&gt;live&lt;/code&gt; variable is &lt;code class=&quot;highlighter-rouge&quot;&gt;blue&lt;/code&gt;, this is proxied to the &lt;code class=&quot;highlighter-rouge&quot;&gt;blue&lt;/code&gt; app. If the value of &lt;code class=&quot;highlighter-rouge&quot;&gt;live&lt;/code&gt; is &lt;code class=&quot;highlighter-rouge&quot;&gt;green&lt;/code&gt;, this is proxied to &lt;code class=&quot;highlighter-rouge&quot;&gt;green&lt;/code&gt; app. So, in essence, the port 80 will point to the live environment.&lt;/p&gt;
+
+&lt;p&gt;Similarly, we have a server block that listens to port 8080. This is proxied to the staging environment. So, if the value of &lt;code class=&quot;highlighter-rouge&quot;&gt;live&lt;/code&gt; is &lt;code class=&quot;highlighter-rouge&quot;&gt;blue&lt;/code&gt;, this points to the &lt;code class=&quot;highlighter-rouge&quot;&gt;green&lt;/code&gt; app and vice-versa. In any case, the port 80 will give the live environment and port 8080 will give the staging environment.&lt;/p&gt;
+
+&lt;h2 id=&quot;image-scripts&quot;&gt;Image Scripts&lt;/h2&gt;
+
+&lt;p&gt;We need a bash script, that acts as the entry point to this docker image. The file &lt;code class=&quot;highlighter-rouge&quot;&gt;start.sh&lt;/code&gt; looks like this.&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;&lt;span class=&quot;c&quot;&gt;#!/bin/sh&lt;/span&gt;
+nginx -g &lt;span class=&quot;s1&quot;&gt;&#39;daemon off;&#39;&lt;/span&gt; &amp;amp;
+&lt;span class=&quot;nb&quot;&gt;echo&lt;/span&gt; -n &lt;span class=&quot;nv&quot;&gt;$LIVE&lt;/span&gt; &amp;gt; /var/live
+consul-template -consul&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$CONSUL_URL&lt;/span&gt; -template&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;/templates/default.ctmpl:/etc/nginx/nginx.conf:nginx -s reload&quot;&lt;/span&gt;  &lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;The first line of the scipt starts up &lt;code class=&quot;highlighter-rouge&quot;&gt;nginx&lt;/code&gt;. Now, we write the value of environment variable &lt;code class=&quot;highlighter-rouge&quot;&gt;LIVE&lt;/code&gt; to the file &lt;code class=&quot;highlighter-rouge&quot;&gt;/var/live&lt;/code&gt;. This environment variable contains the value &lt;code class=&quot;highlighter-rouge&quot;&gt;blue&lt;/code&gt; or &lt;code class=&quot;highlighter-rouge&quot;&gt;green&lt;/code&gt;, which is the initial live environment.&lt;/p&gt;
+
+&lt;p&gt;We then start up &lt;code class=&quot;highlighter-rouge&quot;&gt;consul-template&lt;/code&gt;. This command need two parameter. The first one is &lt;code class=&quot;highlighter-rouge&quot;&gt;-consul&lt;/code&gt; and it requires the url for consul. We pass an environment variable for this. The next one is called &lt;code class=&quot;highlighter-rouge&quot;&gt;-template&lt;/code&gt; and it consists of three parts seperated by a colon. The first one is the path of the template file. The second is the path where the generated configuration file must be placed. The third is the command that must by run when new configuration is generated. Here, we need to reload nginx.&lt;/p&gt;
+
+&lt;p&gt;The consul-template listens for services and create new configuration file whenever a service starts or stops. The information about this is collected by the registrator services running in each node is our swarm and is stored in consul.&lt;/p&gt;
+
+&lt;p&gt;Now, we need another script to switch the live environment. The script will accept a parameter, either &lt;code class=&quot;highlighter-rouge&quot;&gt;blue&lt;/code&gt; of &lt;code class=&quot;highlighter-rouge&quot;&gt;green&lt;/code&gt; and change the current live environment to that value. The file &lt;code class=&quot;highlighter-rouge&quot;&gt;switch&lt;/code&gt; looks like this.&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;&lt;span class=&quot;c&quot;&gt;#!/bin/sh&lt;/span&gt;
+
+&lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt; &lt;span class=&quot;nv&quot;&gt;$# &lt;/span&gt;-eq 0 &lt;span class=&quot;o&quot;&gt;]&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;then
+    &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;echo&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;No arguments supplied&quot;&lt;/span&gt;
+    &lt;span class=&quot;nb&quot;&gt;exit &lt;/span&gt;1
+&lt;span class=&quot;k&quot;&gt;fi
+
+if&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt; &lt;span class=&quot;nv&quot;&gt;$1&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;blue&quot;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;]&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;then
+    &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;echo&lt;/span&gt; -n &lt;span class=&quot;s2&quot;&gt;&quot;blue&quot;&lt;/span&gt; &amp;gt; /var/live
+  &lt;span class=&quot;k&quot;&gt;else
+    &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;echo&lt;/span&gt; -n &lt;span class=&quot;s2&quot;&gt;&quot;green&quot;&lt;/span&gt; &amp;gt; /var/live
+&lt;span class=&quot;k&quot;&gt;fi
+
+&lt;/span&gt;consul-template -consul&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$CONSUL_URL&lt;/span&gt; -template&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;/templates/default.ctmpl:/etc/nginx/nginx.conf:nginx -s reload&quot;&lt;/span&gt; -retry 30s -once &lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;If there is no arguments passed to this scripts, it exits showing the error message, &lt;code class=&quot;highlighter-rouge&quot;&gt;No arguments supplied&lt;/code&gt;. If the parameter is &lt;code class=&quot;highlighter-rouge&quot;&gt;blue&lt;/code&gt;, it is written to the file &lt;code class=&quot;highlighter-rouge&quot;&gt;/var/live&lt;/code&gt;. Else, the value &lt;code class=&quot;highlighter-rouge&quot;&gt;green&lt;/code&gt; is written to that file. This is now the current live environment.&lt;/p&gt;
+
+&lt;p&gt;Finally, we run the &lt;code class=&quot;highlighter-rouge&quot;&gt;consul-template&lt;/code&gt; command with the &lt;code class=&quot;highlighter-rouge&quot;&gt;once&lt;/code&gt; parameter. This causes the consul-template to create new nginx configuration based on the new value in &lt;code class=&quot;highlighter-rouge&quot;&gt;/var/live&lt;/code&gt; and reload nginx. This will switch the current live environment. As we have used the &lt;code class=&quot;highlighter-rouge&quot;&gt;once&lt;/code&gt; parameter, the new configuration in made only once and consul-template will not listen for new services. For that, we have a consul-template running from our &lt;code class=&quot;highlighter-rouge&quot;&gt;start.sh&lt;/code&gt; file.&lt;/p&gt;
+
+&lt;h2 id=&quot;blue-green-image&quot;&gt;Blue-Green Image&lt;/h2&gt;
+
+&lt;p&gt;Save these three files, &lt;code class=&quot;highlighter-rouge&quot;&gt;default.ctmpl&lt;/code&gt;, &lt;code class=&quot;highlighter-rouge&quot;&gt;start.sh&lt;/code&gt; and &lt;code class=&quot;highlighter-rouge&quot;&gt;switch&lt;/code&gt;, in folder named &lt;code class=&quot;highlighter-rouge&quot;&gt;files&lt;/code&gt;. In its parent, we can have the &lt;code class=&quot;highlighter-rouge&quot;&gt;Dockerfile&lt;/code&gt; and &lt;code class=&quot;highlighter-rouge&quot;&gt;docker-compose.yml&lt;/code&gt;. The &lt;code class=&quot;highlighter-rouge&quot;&gt;Dockerfile&lt;/code&gt; contains information on how to build this docker image and will look like this.&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;FROM nginx:alpine
+
+RUN apk add --no-cache --virtual unzip
+ADD https://releases.hashicorp.com/consul-template/0.14.0/consul-template_0.14.0_linux_amd64.zip /usr/bin/
+RUN unzip /usr/bin/consul-template_0.14.0_linux_amd64.zip -d /usr/local/bin
+
+COPY files/s&lt;span class=&quot;k&quot;&gt;*&lt;/span&gt; /bin/
+RUN chmod +x /bin/switch /bin/start.sh
+COPY files/default.ctmpl /templates/
+
+ENV LIVE blue
+ENV BLUE_NAME blue
+ENV GREEN_NAME green
+
+EXPOSE 80 8080
+ENTRYPOINT &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;/bin/start.sh&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;This dockerfile uses &lt;code class=&quot;highlighter-rouge&quot;&gt;nginx:alpine&lt;/code&gt; as the base and installs unzip and consul-template into it. It then copies the &lt;code class=&quot;highlighter-rouge&quot;&gt;start.sh&lt;/code&gt;, &lt;code class=&quot;highlighter-rouge&quot;&gt;switch&lt;/code&gt; and &lt;code class=&quot;highlighter-rouge&quot;&gt;default.ctmpl&lt;/code&gt; to required locations and make the scripts executable.&lt;/p&gt;
+
+&lt;p&gt;We also set the default values for following environment variables:&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;LIVE&lt;/code&gt;: The initial live environment. Set to &lt;code class=&quot;highlighter-rouge&quot;&gt;blue&lt;/code&gt;.&lt;/li&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;BLUE_NAME&lt;/code&gt;: The docker service name of blue environment. Set to &lt;code class=&quot;highlighter-rouge&quot;&gt;blue&lt;/code&gt;.&lt;/li&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;GREEN_NAME&lt;/code&gt;: The docker service name of green environment. Set to &lt;code class=&quot;highlighter-rouge&quot;&gt;green&lt;/code&gt;.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;We expose the port 80 and 8080. The &lt;code class=&quot;highlighter-rouge&quot;&gt;start.sh&lt;/code&gt; file will be the entry point to this image.&lt;/p&gt;
+
+&lt;h2 id=&quot;testing-blue-green-deployment&quot;&gt;Testing Blue-Green deployment&lt;/h2&gt;
+
+&lt;p&gt;To test blue-green deployment, we will use the following &lt;code class=&quot;highlighter-rouge&quot;&gt;docker-compose.yml&lt;/code&gt; file.&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-conf&quot; data-lang=&quot;conf&quot;&gt;&lt;span class=&quot;n&quot;&gt;version&lt;/span&gt;: &lt;span class=&quot;s1&quot;&gt;&#39;2&#39;&lt;/span&gt;
+
+&lt;span class=&quot;n&quot;&gt;services&lt;/span&gt;:
+  &lt;span class=&quot;n&quot;&gt;bg&lt;/span&gt;:
+    &lt;span class=&quot;n&quot;&gt;image&lt;/span&gt;: &lt;span class=&quot;n&quot;&gt;hanzel&lt;/span&gt;/&lt;span class=&quot;n&quot;&gt;blue&lt;/span&gt;-&lt;span class=&quot;n&quot;&gt;green&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;container_name&lt;/span&gt;: &lt;span class=&quot;n&quot;&gt;bg&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;ports&lt;/span&gt;:
+      - &lt;span class=&quot;s2&quot;&gt;&quot;80:80&quot;&lt;/span&gt;
+      - &lt;span class=&quot;s2&quot;&gt;&quot;8080:8080&quot;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;environment&lt;/span&gt;:
+      - &lt;span class=&quot;n&quot;&gt;CONSUL_URL&lt;/span&gt;=${&lt;span class=&quot;n&quot;&gt;KV_IP&lt;/span&gt;}:&lt;span class=&quot;m&quot;&gt;8500&lt;/span&gt;
+      - &lt;span class=&quot;n&quot;&gt;BLUE_NAME&lt;/span&gt;=&lt;span class=&quot;n&quot;&gt;blue&lt;/span&gt;
+      - &lt;span class=&quot;n&quot;&gt;GREEN_NAME&lt;/span&gt;=&lt;span class=&quot;n&quot;&gt;green&lt;/span&gt;
+      - &lt;span class=&quot;n&quot;&gt;LIVE&lt;/span&gt;=&lt;span class=&quot;n&quot;&gt;blue&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;depends_on&lt;/span&gt;:
+      - &lt;span class=&quot;n&quot;&gt;green&lt;/span&gt;
+      - &lt;span class=&quot;n&quot;&gt;blue&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;networks&lt;/span&gt;:
+      - &lt;span class=&quot;n&quot;&gt;blue&lt;/span&gt;-&lt;span class=&quot;n&quot;&gt;green&lt;/span&gt;
+
+  &lt;span class=&quot;n&quot;&gt;blue&lt;/span&gt;:
+    &lt;span class=&quot;n&quot;&gt;image&lt;/span&gt;: &lt;span class=&quot;n&quot;&gt;hanzel&lt;/span&gt;/&lt;span class=&quot;n&quot;&gt;nginx&lt;/span&gt;-&lt;span class=&quot;n&quot;&gt;html&lt;/span&gt;:&lt;span class=&quot;m&quot;&gt;1&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;ports&lt;/span&gt;:
+      - &lt;span class=&quot;s2&quot;&gt;&quot;80&quot;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;environment&lt;/span&gt;:
+      - &lt;span class=&quot;n&quot;&gt;SERVICE_80_NAME&lt;/span&gt;=&lt;span class=&quot;n&quot;&gt;blue&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;networks&lt;/span&gt;:
+      - &lt;span class=&quot;n&quot;&gt;blue&lt;/span&gt;-&lt;span class=&quot;n&quot;&gt;green&lt;/span&gt;
+
+  &lt;span class=&quot;n&quot;&gt;green&lt;/span&gt;:
+    &lt;span class=&quot;n&quot;&gt;image&lt;/span&gt;: &lt;span class=&quot;n&quot;&gt;hanzel&lt;/span&gt;/&lt;span class=&quot;n&quot;&gt;nginx&lt;/span&gt;-&lt;span class=&quot;n&quot;&gt;html&lt;/span&gt;:&lt;span class=&quot;m&quot;&gt;2&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;ports&lt;/span&gt;:
+      - &lt;span class=&quot;s2&quot;&gt;&quot;80&quot;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;environment&lt;/span&gt;:
+      - &lt;span class=&quot;n&quot;&gt;SERVICE_80_NAME&lt;/span&gt;=&lt;span class=&quot;n&quot;&gt;green&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;networks&lt;/span&gt;:
+      - &lt;span class=&quot;n&quot;&gt;blue&lt;/span&gt;-&lt;span class=&quot;n&quot;&gt;green&lt;/span&gt;
+
+&lt;span class=&quot;n&quot;&gt;networks&lt;/span&gt;:
+  &lt;span class=&quot;n&quot;&gt;blue&lt;/span&gt;-&lt;span class=&quot;n&quot;&gt;green&lt;/span&gt;:
+    &lt;span class=&quot;n&quot;&gt;driver&lt;/span&gt;: &lt;span class=&quot;n&quot;&gt;overlay&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;We are using the version 2 of docker-compose file, with three services in an overlay network named &lt;code class=&quot;highlighter-rouge&quot;&gt;blue-green&lt;/code&gt;. We have two versions of &lt;code class=&quot;highlighter-rouge&quot;&gt;hanzel/nginx-html&lt;/code&gt; image running as blue and green services. We also have &lt;code class=&quot;highlighter-rouge&quot;&gt;hanzel/blue-green&lt;/code&gt; image running for blue-green deployment.&lt;/p&gt;
+
+&lt;p&gt;The first service is the blue service, named &lt;code class=&quot;highlighter-rouge&quot;&gt;blue&lt;/code&gt;. The image used is version 1 of &lt;code class=&quot;highlighter-rouge&quot;&gt;hanzel/nginx-html&lt;/code&gt;. We have mapped the port 80 of the container to some port in the host. We have set the environment variable &lt;code class=&quot;highlighter-rouge&quot;&gt;SERVICE_80_NAME&lt;/code&gt; to &lt;code class=&quot;highlighter-rouge&quot;&gt;blue&lt;/code&gt;. This causes the &lt;code class=&quot;highlighter-rouge&quot;&gt;registrator&lt;/code&gt; to register this service into consul named as &lt;code class=&quot;highlighter-rouge&quot;&gt;blue&lt;/code&gt;. This is the initial live environment.&lt;/p&gt;
+
+&lt;p&gt;Similarly, we have the green service, named &lt;code class=&quot;highlighter-rouge&quot;&gt;green&lt;/code&gt;. The image used here is version 2 of the &lt;code class=&quot;highlighter-rouge&quot;&gt;hanzel/nginx-html&lt;/code&gt;. The environment variable &lt;code class=&quot;highlighter-rouge&quot;&gt;SERVICE_80_NAME&lt;/code&gt; is set to &lt;code class=&quot;highlighter-rouge&quot;&gt;green&lt;/code&gt; so that &lt;code class=&quot;highlighter-rouge&quot;&gt;registrator&lt;/code&gt; will register it named as &lt;code class=&quot;highlighter-rouge&quot;&gt;green&lt;/code&gt;. This is the initial statging environment.&lt;/p&gt;
+
+&lt;p&gt;Finally, we have the &lt;code class=&quot;highlighter-rouge&quot;&gt;bg&lt;/code&gt; service with &lt;code class=&quot;highlighter-rouge&quot;&gt;hanzel/blue-green&lt;/code&gt; image. You can also build the image we just made in the previous section for this service by replacing the line &lt;code class=&quot;highlighter-rouge&quot;&gt;image: hanzel/blue-green&lt;/code&gt; with &lt;code class=&quot;highlighter-rouge&quot;&gt;build: .&lt;/code&gt; and placing this file along with the &lt;code class=&quot;highlighter-rouge&quot;&gt;Dockerfile&lt;/code&gt; we made in the previous section.&lt;/p&gt;
+
+&lt;p&gt;We map the ports &lt;code class=&quot;highlighter-rouge&quot;&gt;80&lt;/code&gt; and &lt;code class=&quot;highlighter-rouge&quot;&gt;8080&lt;/code&gt; of the container to that of the host. We also need to set the following environment variables.&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;CONSUL_URL&lt;/code&gt;: The url endpoint of consul. We have set it to &lt;code class=&quot;highlighter-rouge&quot;&gt;${KV_IP}:8500&lt;/code&gt;, where &lt;code class=&quot;highlighter-rouge&quot;&gt;KV_IP&lt;/code&gt; is the environment variable we have set while making the swarm.&lt;/li&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;BLUE_NAME&lt;/code&gt;: The docker service name of the blue image. Set to &lt;code class=&quot;highlighter-rouge&quot;&gt;blue&lt;/code&gt;.&lt;/li&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;GREEN_NAME&lt;/code&gt;: The docker service name of the green image. Set to &lt;code class=&quot;highlighter-rouge&quot;&gt;green&lt;/code&gt;.&lt;/li&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;LIVE&lt;/code&gt;: The initial live environment, blue or green. Set to &lt;code class=&quot;highlighter-rouge&quot;&gt;blue&lt;/code&gt;.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;We can start the services with the following command.&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;docker-compose up -d&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;This will start up a single instance of each of these three services. We can scale the blue and green services to 3 instances each with the following command.&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;docker-compose scale &lt;span class=&quot;nv&quot;&gt;blue&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;3 &lt;span class=&quot;nv&quot;&gt;green&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;3&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;These will create two new instances for blue and green service. You can see the running services of docker-compose with the &lt;code class=&quot;highlighter-rouge&quot;&gt;docker-compose ps&lt;/code&gt; command. The output of the command will look something like this.&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;Name          Command                State                               Ports
+----------------------------------------------------------------------------------------------------------
+&lt;span class=&quot;nb&quot;&gt;bg&lt;/span&gt;            /bin/start.sh          Up      443/tcp, 45.55.185.18:80-&amp;gt;80/tcp, 45.55.185.18:8080-&amp;gt;8080/tcp
+tmp_blue_1    nginx -g daemon off;   Up      443/tcp, 45.55.185.18:32777-&amp;gt;80/tcp
+tmp_blue_2    nginx -g daemon off;   Up      443/tcp, 159.203.119.37:32769-&amp;gt;80/tcp
+tmp_blue_3    nginx -g daemon off;   Up      443/tcp, 45.55.185.18:32778-&amp;gt;80/tcp
+tmp_green_1   nginx -g daemon off;   Up      443/tcp, 159.203.119.37:32768-&amp;gt;80/tcp
+tmp_green_2   nginx -g daemon off;   Up      443/tcp, 45.55.185.18:32779-&amp;gt;80/tcp
+tmp_green_3   nginx -g daemon off;   Up      443/tcp, 159.203.119.37:32770-&amp;gt;80/tcp&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;We can see the live production environment from the url given by the command, &lt;code class=&quot;highlighter-rouge&quot;&gt;docker-compose port bg 80&lt;/code&gt;. You will get some IP address like &lt;code class=&quot;highlighter-rouge&quot;&gt;45.55.185.18:80&lt;/code&gt;. Go to this url and we can see the live environment, currently &lt;code class=&quot;highlighter-rouge&quot;&gt;blue&lt;/code&gt;, showing &lt;code class=&quot;highlighter-rouge&quot;&gt;Version 1&lt;/code&gt;. You can see the staging environment, currently &lt;code class=&quot;highlighter-rouge&quot;&gt;green&lt;/code&gt;, by going to port &lt;code class=&quot;highlighter-rouge&quot;&gt;8080&lt;/code&gt; of the same IP. That will be &lt;code class=&quot;highlighter-rouge&quot;&gt;45.55.185.18:8080&lt;/code&gt; in this case. This will show you &lt;code class=&quot;highlighter-rouge&quot;&gt;Version 2&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;Now, the users can see the version 1 of your app and only you can see version 2. You can test the new version and if you are satisfied, you can switch the live environment to &lt;code class=&quot;highlighter-rouge&quot;&gt;green&lt;/code&gt;. To do this, use the following command.&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;docker &lt;span class=&quot;nb&quot;&gt;exec bg &lt;/span&gt;switch green&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;Now, the live version is &lt;code class=&quot;highlighter-rouge&quot;&gt;green&lt;/code&gt; and at port 80, you can see version 2 and at port 8080, you can see version 1. You can see the new nginx configuration with the command, &lt;code class=&quot;highlighter-rouge&quot;&gt;docker exec bg cat /etc/nginx/nginx.conf&lt;/code&gt;. The output of this command will look like this.&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-nginx&quot; data-lang=&quot;nginx&quot;&gt;&lt;span class=&quot;k&quot;&gt;worker_processes&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+
+&lt;span class=&quot;k&quot;&gt;events&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;kn&quot;&gt;worker_connections&lt;/span&gt;  &lt;span class=&quot;mi&quot;&gt;1024&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+&lt;span class=&quot;k&quot;&gt;http&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;kn&quot;&gt;upstream&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;blue&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;kn&quot;&gt;least_conn&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+
+    &lt;span class=&quot;kn&quot;&gt;server&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;10.132.12.95&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;32769&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;max_fails=3&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;fail_timeout=60&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;weight=1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;kn&quot;&gt;server&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;10.132.35.39&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;32777&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;max_fails=3&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;fail_timeout=60&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;weight=1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;kn&quot;&gt;server&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;10.132.35.39&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;32778&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;max_fails=3&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;fail_timeout=60&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;weight=1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+  &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+  &lt;span class=&quot;kn&quot;&gt;upstream&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;green&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;kn&quot;&gt;least_conn&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+
+    &lt;span class=&quot;kn&quot;&gt;server&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;10.132.12.95&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;32768&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;max_fails=3&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;fail_timeout=60&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;weight=1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;kn&quot;&gt;server&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;10.132.12.95&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;32770&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;max_fails=3&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;fail_timeout=60&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;weight=1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;kn&quot;&gt;server&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;10.132.35.39&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;32779&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;max_fails=3&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;fail_timeout=60&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;weight=1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+  &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+  &lt;span class=&quot;kn&quot;&gt;server&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;kn&quot;&gt;listen&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;80&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;default&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+
+    &lt;span class=&quot;kn&quot;&gt;location&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;/&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+      &lt;span class=&quot;kn&quot;&gt;proxy_pass&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;http://green&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+  &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+  &lt;span class=&quot;kn&quot;&gt;server&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;kn&quot;&gt;listen&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;8080&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+
+    &lt;span class=&quot;kn&quot;&gt;location&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;/&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+      &lt;span class=&quot;kn&quot;&gt;proxy_pass&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;http://blue&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+  &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;You can always check the current live environment using the command, &lt;code class=&quot;highlighter-rouge&quot;&gt;docker exec bg cat /var/live&lt;/code&gt;. Now, &lt;code class=&quot;highlighter-rouge&quot;&gt;blue&lt;/code&gt; is the staging environment and we can check version 3 there. So in the blue service of the &lt;code class=&quot;highlighter-rouge&quot;&gt;docker-compose.yml&lt;/code&gt; file, change the line &lt;code class=&quot;highlighter-rouge&quot;&gt;image: hanzel/nginx-html:1&lt;/code&gt; to &lt;code class=&quot;highlighter-rouge&quot;&gt;image: hanzel/nginx-html:3&lt;/code&gt;. To update the blue service, run the following command.&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;docker-compose up -d blue&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;All three instances for &lt;code class=&quot;highlighter-rouge&quot;&gt;blue&lt;/code&gt; services will be upgraded from version 1 to version 3 now. The staging environment at port &lt;code class=&quot;highlighter-rouge&quot;&gt;8080&lt;/code&gt; of the &lt;code class=&quot;highlighter-rouge&quot;&gt;bg&lt;/code&gt; service will now show &lt;code class=&quot;highlighter-rouge&quot;&gt;Version 3&lt;/code&gt;. You can check this version and if it is okay for production, switch the live environment to &lt;code class=&quot;highlighter-rouge&quot;&gt;blue&lt;/code&gt; with the following command.&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;docker &lt;span class=&quot;nb&quot;&gt;exec bg &lt;/span&gt;switch blue&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;Now, live environment at port &lt;code class=&quot;highlighter-rouge&quot;&gt;80&lt;/code&gt; will show &lt;code class=&quot;highlighter-rouge&quot;&gt;Version 3&lt;/code&gt; and the staging environment at port &lt;code class=&quot;highlighter-rouge&quot;&gt;8080&lt;/code&gt; will show &lt;code class=&quot;highlighter-rouge&quot;&gt;Version 2&lt;/code&gt;. You can repeat this process for newer versions.&lt;/p&gt;
+
+&lt;h2 id=&quot;conclusion&quot;&gt;Conclusion&lt;/h2&gt;
+
+&lt;p&gt;In this article, we have seen how to build a blue-green deployment system with Dockers to release new version of the app without downtime. We have made a docker image to implement this blue-green deployment and tested it on an app deployed with Docker Swarm.&lt;/p&gt;
+
+&lt;p&gt;Once you are done, the services can be stopped and the hosts removed with the following commands.&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;docker-compose down
+docker-machine stop consul master slave
+docker-compose rm consul master slave&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+</description>
+        <pubDate>Sun, 10 Apr 2016 23:30:00 +0530</pubDate>
+        <link>https://botleg.com/stories/blue-green-deployment-with-docker/</link>
+        <guid isPermaLink="true">https://botleg.com/stories/blue-green-deployment-with-docker/</guid>
+        
+        <category>blue-green</category>
+        
+        <category>live</category>
+        
+        <category>staging</category>
+        
+        <category>docker</category>
+        
+        <category>swarm</category>
+        
+        <category>registrator</category>
+        
+        <category>nginx</category>
+        
+        <category>consul</category>
+        
+        <category>consul-template</category>
+        
+        <category>overlay</category>
+        
+        <category>digitalocean</category>
+        
+        <category>compose</category>
+        
+        <category>machine</category>
+        
+        <category>bash</category>
+        
+        <category>Dockerfile</category>
+        
+        
+        <category>devops</category>
+        
+      </item>
     
       <item>
         <title>Load Balancing with Docker Swarm</title>
@@ -66,7 +442,7 @@ docker run -d &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
   -p &lt;span class=&quot;k&quot;&gt;${&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;KV_IP&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;}&lt;/span&gt;:8500:8500 &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
   -h consul &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
   --restart always &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
-  progrium/consul -server -bootstrap&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+  gliderlabs/consul-server -bootstrap&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
 
 &lt;p&gt;This command will pull and deploy the image in &lt;code class=&quot;highlighter-rouge&quot;&gt;consul&lt;/code&gt; host.&lt;/p&gt;
 
@@ -1489,196 +1865,6 @@ WORKDIR /&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;app&lt;/span&gt;
         
         
         <category>jekyll</category>
-        
-      </item>
-    
-      <item>
-        <title>Using your sessions with Socket.IO</title>
-        <author><name>Hanzel Jesheen</name></author>
-        <description>&lt;blockquote&gt;
-  &lt;p&gt;Socket.IO enables real-time bidirectional event-based communication.&lt;/p&gt;
-&lt;/blockquote&gt;
-
-&lt;p&gt;&lt;a href=&quot;http://socket.io/&quot;&gt;Socket.IO&lt;/a&gt; uses web sockets for communication between the Node.js server and its clients. If client emits an event with some data, server can listen to it and use the data, and vice versa. The server can also broadcast events to all clients. In this article, we will see how to use our site’s sessions for authentication with Socket.IO.&lt;/p&gt;
-
-&lt;p&gt;The entire code for the application can be found &lt;a href=&quot;https://github.com/botleg/socketio-sessions&quot;&gt;here&lt;/a&gt; and the working demo is deployed &lt;a href=&quot;http://socketio.sessions.botleg.com/&quot;&gt;here&lt;/a&gt;. We have a small chat application. When a new user opens the application, he gets a session with a random number as his &lt;code class=&quot;highlighter-rouge&quot;&gt;user id&lt;/code&gt;. This is required by Socket.IO for authentication.&lt;/p&gt;
-
-&lt;h2 id=&quot;the-basic-app&quot;&gt;The Basic App&lt;/h2&gt;
-&lt;p&gt;We start with a simple chat application made in Node.js with &lt;a href=&quot;http://koajs.com/&quot;&gt;Koa&lt;/a&gt; web framework. The code at this point can be found at the &lt;code class=&quot;highlighter-rouge&quot;&gt;before-session&lt;/code&gt; tag of the code repository &lt;a href=&quot;https://github.com/botleg/socketio-sessions/tree/before-session&quot;&gt;here&lt;/a&gt;.&lt;/p&gt;
-
-&lt;p&gt;The server file, &lt;code class=&quot;highlighter-rouge&quot;&gt;index.js&lt;/code&gt; creates a Koa server and serves a static folder &lt;code class=&quot;highlighter-rouge&quot;&gt;public&lt;/code&gt; which contains a HTML page and a javascript file. It then connects this server to Socket.IO. The code looks like this.&lt;/p&gt;
-
-&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-javascript&quot; data-lang=&quot;javascript&quot;&gt;&lt;span class=&quot;kd&quot;&gt;var&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;app&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;require&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;koa&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)(),&lt;/span&gt;
-    &lt;span class=&quot;nx&quot;&gt;serve&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;require&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;koa-static&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
-
-&lt;span class=&quot;kr&quot;&gt;const&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;PORT&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;8000&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
-&lt;span class=&quot;kr&quot;&gt;const&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;IP&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&#39;127.0.0.1&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
-
-&lt;span class=&quot;nx&quot;&gt;app&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;use&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;serve&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;./public&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;));&lt;/span&gt;
-
-&lt;span class=&quot;kd&quot;&gt;var&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;server&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;require&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;http&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;).&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;Server&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;app&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;callback&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()),&lt;/span&gt;
-    &lt;span class=&quot;nx&quot;&gt;io&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;require&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;socket.io&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;server&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
-
-&lt;span class=&quot;nx&quot;&gt;io&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;on&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;connection&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;function&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;socket&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
-  &lt;span class=&quot;nx&quot;&gt;socket&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;on&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;send chat&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;function&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;data&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
-    &lt;span class=&quot;nx&quot;&gt;io&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;emit&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;new chat&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;data&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
-  &lt;span class=&quot;p&quot;&gt;});&lt;/span&gt;
-&lt;span class=&quot;p&quot;&gt;});&lt;/span&gt;
-
-&lt;span class=&quot;nx&quot;&gt;server&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;listen&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;PORT&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;IP&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
-
-&lt;p&gt;The client, &lt;code class=&quot;highlighter-rouge&quot;&gt;public/app.js&lt;/code&gt; connects to Socket.IO and sends the chat message to server by emitting &lt;code class=&quot;highlighter-rouge&quot;&gt;send chat&lt;/code&gt; event and listens for &lt;code class=&quot;highlighter-rouge&quot;&gt;new chat&lt;/code&gt; event for any new messages from other users. Note that we are only sending the message to the server and nothing about the user.&lt;/p&gt;
-
-&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-javascript&quot; data-lang=&quot;javascript&quot;&gt;&lt;span class=&quot;kd&quot;&gt;var&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;socket&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;io&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;connect&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(),&lt;/span&gt;
-    &lt;span class=&quot;nx&quot;&gt;form&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;document&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;getElementById&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;chatForm&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt;
-    &lt;span class=&quot;nx&quot;&gt;msgBox&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;document&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;getElementById&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;msgBox&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt;
-    &lt;span class=&quot;nx&quot;&gt;chatBox&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;document&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;getElementById&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;chatBox&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
-
-&lt;span class=&quot;nx&quot;&gt;socket&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;on&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;new chat&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;function&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;data&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
-  &lt;span class=&quot;nx&quot;&gt;chatBox&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;innerHTML&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;data&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;msg&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&#39;&amp;lt;hr/&amp;gt;&#39;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;chatBox&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;innerHTML&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
-&lt;span class=&quot;p&quot;&gt;});&lt;/span&gt;
-
-&lt;span class=&quot;kd&quot;&gt;function&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;newMsg&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;e&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
-  &lt;span class=&quot;nx&quot;&gt;e&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;preventDefault&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;();&lt;/span&gt;
-  &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;msgBox&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;value&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;trim&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;!==&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&#39;&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
-    &lt;span class=&quot;nx&quot;&gt;socket&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;emit&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;send chat&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; &lt;span class=&quot;na&quot;&gt;msg&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;msgBox&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;value&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;trim&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;});&lt;/span&gt;
-    &lt;span class=&quot;nx&quot;&gt;msgBox&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;value&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&#39;&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
-  &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
-&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
-
-&lt;span class=&quot;k&quot;&gt;if&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;form&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;addEventListener&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;){&lt;/span&gt;
-  &lt;span class=&quot;nx&quot;&gt;form&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;addEventListener&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;submit&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;newMsg&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kc&quot;&gt;false&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
-&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;else&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;form&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;attachEvent&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;){&lt;/span&gt;
-  &lt;span class=&quot;nx&quot;&gt;form&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;attachEvent&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;onsubmit&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;newMsg&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
-&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
-
-&lt;h2 id=&quot;adding-sessions&quot;&gt;Adding Sessions&lt;/h2&gt;
-&lt;p&gt;To add session authentication to Socket.IO, we only need to make the change in the server side code. That is the &lt;code class=&quot;highlighter-rouge&quot;&gt;index.js&lt;/code&gt; file. First, we need to install two modules, &lt;code class=&quot;highlighter-rouge&quot;&gt;koa-session&lt;/code&gt; and &lt;code class=&quot;highlighter-rouge&quot;&gt;cookie&lt;/code&gt;.&lt;/p&gt;
-
-&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;npm install --save koa-session
-npm install --save cookie&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
-
-&lt;p&gt;Require these from &lt;code class=&quot;highlighter-rouge&quot;&gt;index.js&lt;/code&gt; page and set up &lt;code class=&quot;highlighter-rouge&quot;&gt;koa-session&lt;/code&gt; with some secret key.&lt;/p&gt;
-
-&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-javascript&quot; data-lang=&quot;javascript&quot;&gt;&lt;span class=&quot;kd&quot;&gt;var&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;cookie&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;require&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;cookie&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt;
-    &lt;span class=&quot;nx&quot;&gt;serve&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;require&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;koa-static&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
-
-&lt;span class=&quot;nx&quot;&gt;app&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;keys&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;my secret key&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;];&lt;/span&gt;
-&lt;span class=&quot;nx&quot;&gt;app&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;use&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;session&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;app&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;));&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
-
-&lt;p&gt;Now, we’ll create a session for all users with some random number as the username. However, we only need to create a new session if one doesn’t already exist. This way, a user will have the same username even if he closes the app and reopens it. Also, we need to put all these middleware functions before serving the public folder.&lt;/p&gt;
-
-&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-javascript&quot; data-lang=&quot;javascript&quot;&gt;&lt;span class=&quot;nx&quot;&gt;app&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;use&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kd&quot;&gt;function&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;next&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
-  &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;typeof&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;this&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;session&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;name&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;===&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&#39;undefined&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
-    &lt;span class=&quot;k&quot;&gt;this&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;session&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;name&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;Math&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;round&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;Math&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;random&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;10000&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
-  &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
-  &lt;span class=&quot;k&quot;&gt;yield&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;next&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
-&lt;span class=&quot;p&quot;&gt;});&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
-
-&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;koa-session&lt;/code&gt; will generate two cookies, &lt;code class=&quot;highlighter-rouge&quot;&gt;koa:sess&lt;/code&gt; and &lt;code class=&quot;highlighter-rouge&quot;&gt;koa:sess.sig&lt;/code&gt;. We are interested in &lt;code class=&quot;highlighter-rouge&quot;&gt;koa:sess&lt;/code&gt;. It contains all the data we put in to the session and some default values in &lt;code class=&quot;highlighter-rouge&quot;&gt;base64 encoded&lt;/code&gt; format. After decoding, it will contain something like this.&lt;/p&gt;
-
-&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-json&quot; data-lang=&quot;json&quot;&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
-  &lt;/span&gt;&lt;span class=&quot;nt&quot;&gt;&quot;name&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1095&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
-  &lt;/span&gt;&lt;span class=&quot;nt&quot;&gt;&quot;_expire&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1443197611494&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
-  &lt;/span&gt;&lt;span class=&quot;nt&quot;&gt;&quot;_maxAge&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;86400000&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
-&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
-
-&lt;p&gt;Now, we can get to Socket.IO authorization. You can define custom authorization for Socket.IO with this function.&lt;/p&gt;
-
-&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-javascript&quot; data-lang=&quot;javascript&quot;&gt;&lt;span class=&quot;nx&quot;&gt;io&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;set&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;authorization&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;function&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;data&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;accept&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
-  &lt;span class=&quot;c1&quot;&gt;//FOR SUCCESS&lt;/span&gt;
-  &lt;span class=&quot;nx&quot;&gt;accept&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kc&quot;&gt;null&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kc&quot;&gt;true&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
-
-  &lt;span class=&quot;c1&quot;&gt;//FOR FAILURE&lt;/span&gt;
-  &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;accept&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;Error Message.&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kc&quot;&gt;false&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
-&lt;span class=&quot;p&quot;&gt;});&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
-
-&lt;p&gt;Only if we send &lt;code class=&quot;highlighter-rouge&quot;&gt;accept(null, true);&lt;/code&gt;, the web-socket handshake happens and we can communicate with it.&lt;/p&gt;
-
-&lt;p&gt;Here, we need to parse the cookies, which is available in &lt;code class=&quot;highlighter-rouge&quot;&gt;data.headers.cookie&lt;/code&gt; to obtain &lt;code class=&quot;highlighter-rouge&quot;&gt;koa:sess&lt;/code&gt; cookie. We then decode it and extract &lt;code class=&quot;highlighter-rouge&quot;&gt;name&lt;/code&gt; from it. We will store this in &lt;code class=&quot;highlighter-rouge&quot;&gt;data.name&lt;/code&gt;. We will only allow connections if the cookie exists with a &lt;code class=&quot;highlighter-rouge&quot;&gt;name&lt;/code&gt;.&lt;/p&gt;
-
-&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-javascript&quot; data-lang=&quot;javascript&quot;&gt;&lt;span class=&quot;nx&quot;&gt;io&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;set&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;authorization&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;function&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;data&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;accept&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
-  &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;data&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;headers&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;cookie&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;amp;&amp;amp;&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;data&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;headers&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;cookie&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;indexOf&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;koa:sess&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
-    &lt;span class=&quot;nx&quot;&gt;data&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;cookie&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;cookie&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;parse&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;data&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;headers&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;cookie&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)[&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;koa:sess&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;];&lt;/span&gt;
-    &lt;span class=&quot;nx&quot;&gt;data&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;name&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;JSON&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;parse&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;Buffer&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;data&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;cookie&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&#39;base64&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)).&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
-  &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;else&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
-    &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;accept&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;No cookie transmitted.&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kc&quot;&gt;false&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
-  &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
-  &lt;span class=&quot;nx&quot;&gt;accept&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kc&quot;&gt;null&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kc&quot;&gt;true&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
-&lt;span class=&quot;p&quot;&gt;});&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
-
-&lt;p&gt;If you are using some sort of session store with a database. You can get the user data required by quering the database with the cookie.&lt;/p&gt;
-
-&lt;p&gt;Now, the &lt;code class=&quot;highlighter-rouge&quot;&gt;name&lt;/code&gt; that we added to data object during authorization can be accessed from &lt;code class=&quot;highlighter-rouge&quot;&gt;socket.request.name&lt;/code&gt;. So, we can modify the &lt;code class=&quot;highlighter-rouge&quot;&gt;send chat&lt;/code&gt; event listener to include the user ID.&lt;/p&gt;
-
-&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-javascript&quot; data-lang=&quot;javascript&quot;&gt;&lt;span class=&quot;nx&quot;&gt;socket&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;on&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;send chat&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;function&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;data&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
-  &lt;span class=&quot;nx&quot;&gt;data&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;msg&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;socket&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;request&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;name&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;: &quot;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;data&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;msg&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
-  &lt;span class=&quot;nx&quot;&gt;io&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;emit&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;new chat&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;data&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
-&lt;span class=&quot;p&quot;&gt;});&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
-
-&lt;p&gt;That’s all we need to do to incorporate our sessions to Socket.IO. The complete server side code now looks like this.&lt;/p&gt;
-
-&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-javascript&quot; data-lang=&quot;javascript&quot;&gt;&lt;span class=&quot;kd&quot;&gt;var&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;app&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;require&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;koa&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)(),&lt;/span&gt;
-    &lt;span class=&quot;nx&quot;&gt;session&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;require&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;koa-session&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt;
-    &lt;span class=&quot;nx&quot;&gt;cookie&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;require&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;cookie&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt;
-    &lt;span class=&quot;nx&quot;&gt;serve&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;require&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;koa-static&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
-
-&lt;span class=&quot;kr&quot;&gt;const&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;PORT&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;8000&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
-&lt;span class=&quot;kr&quot;&gt;const&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;IP&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&#39;127.0.0.1&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
-
-&lt;span class=&quot;nx&quot;&gt;app&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;keys&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;my secret key&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;];&lt;/span&gt;
-&lt;span class=&quot;nx&quot;&gt;app&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;use&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;session&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;app&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;));&lt;/span&gt;
-
-&lt;span class=&quot;nx&quot;&gt;app&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;use&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kd&quot;&gt;function&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;next&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
-  &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;typeof&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;this&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;session&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;name&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;===&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&#39;undefined&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
-    &lt;span class=&quot;k&quot;&gt;this&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;session&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;name&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;Math&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;round&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;Math&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;random&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;10000&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
-  &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
-  &lt;span class=&quot;k&quot;&gt;yield&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;next&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
-&lt;span class=&quot;p&quot;&gt;});&lt;/span&gt;
-
-&lt;span class=&quot;nx&quot;&gt;app&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;use&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;serve&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;./public&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;));&lt;/span&gt;
-
-&lt;span class=&quot;kd&quot;&gt;var&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;server&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;require&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;http&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;).&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;Server&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;app&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;callback&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()),&lt;/span&gt;
-    &lt;span class=&quot;nx&quot;&gt;io&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;require&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;socket.io&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;server&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
-
-&lt;span class=&quot;nx&quot;&gt;io&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;set&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;authorization&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;function&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;data&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;accept&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
-  &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;data&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;headers&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;cookie&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;amp;&amp;amp;&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;data&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;headers&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;cookie&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;indexOf&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;koa:sess&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
-    &lt;span class=&quot;nx&quot;&gt;data&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;cookie&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;cookie&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;parse&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;data&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;headers&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;cookie&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)[&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;koa:sess&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;];&lt;/span&gt;
-    &lt;span class=&quot;nx&quot;&gt;data&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;name&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;JSON&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;parse&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;Buffer&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;data&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;cookie&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&#39;base64&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)).&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
-  &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;else&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
-    &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;accept&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;No cookie transmitted.&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kc&quot;&gt;false&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
-  &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
-  &lt;span class=&quot;nx&quot;&gt;accept&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kc&quot;&gt;null&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kc&quot;&gt;true&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
-&lt;span class=&quot;p&quot;&gt;});&lt;/span&gt;
-
-&lt;span class=&quot;nx&quot;&gt;io&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;on&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;connection&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;function&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;socket&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
-  &lt;span class=&quot;nx&quot;&gt;socket&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;on&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;send chat&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;function&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;data&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
-    &lt;span class=&quot;nx&quot;&gt;data&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;msg&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;socket&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;request&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;name&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;: &quot;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;data&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;msg&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
-    &lt;span class=&quot;nx&quot;&gt;io&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;emit&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;new chat&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;data&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
-  &lt;span class=&quot;p&quot;&gt;});&lt;/span&gt;
-&lt;span class=&quot;p&quot;&gt;});&lt;/span&gt;
-
-&lt;span class=&quot;nx&quot;&gt;server&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;listen&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;PORT&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;IP&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
-
-&lt;h2 id=&quot;conclusion&quot;&gt;Conclusion&lt;/h2&gt;
-&lt;p&gt;In this article, we have seen how to use sessions to authenticate user while connecting to Socket.IO. This enables us to provide security for data communication with web sockets and store the user data persistently.&lt;/p&gt;
-</description>
-        <pubDate>Fri, 25 Sep 2015 03:30:00 +0530</pubDate>
-        <link>https://botleg.com/stories/using-your-sessions-with-socketio/</link>
-        <guid isPermaLink="true">https://botleg.com/stories/using-your-sessions-with-socketio/</guid>
-        
-        <category>socket.io</category>
-        
-        <category>session</category>
-        
-        <category>koa</category>
-        
-        <category>cookie</category>
-        
-        <category>web-sockets</category>
-        
-        
-        <category>Node.js</category>
         
       </item>
     
