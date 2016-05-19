@@ -217,6 +217,7 @@ services:
       - "80:80"
       - "8080:8080"
     environment:
+      - constraint:node==master
       - CONSUL_URL=${KV_IP}:8500
       - BLUE_NAME=blue
       - GREEN_NAME=green
@@ -260,6 +261,7 @@ Finally, we have the `bg` service with `hanzel/blue-green` image. You can also b
 
  We map the ports `80` and `8080` of the container to that of the host. We also need to set the following environment variables.
 
+ * `constraint:node`: The name of the node where this service should run. We want this service to always run on the `master` node.
  * `CONSUL_URL`: The url endpoint of consul. We have set it to `${KV_IP}:8500`, where `KV_IP` is the environment variable we have set while making the swarm.
  * `BLUE_NAME`: The docker service name of the blue image. Set to `blue`.
  * `GREEN_NAME`: The docker service name of the green image. Set to `green`.
@@ -291,7 +293,7 @@ tmp_green_2   nginx -g daemon off;   Up      443/tcp, 45.55.185.18:32779->80/tcp
 tmp_green_3   nginx -g daemon off;   Up      443/tcp, 159.203.119.37:32770->80/tcp
 {% endhighlight %}
 
-We can see the live production environment from the url given by the command, `docker-compose port bg 80`. You will get some IP address like `45.55.185.18:80`. Go to this url and we can see the live environment, currently `blue`, showing `Version 1`. You can see the staging environment, currently `green`, by going to port `8080` of the same IP. That will be `45.55.185.18:8080` in this case. This will show you `Version 2`.
+We can see the live production environment from the url given by the command, `docker-compose port bg 80`. You will get some IP address like `45.55.185.18:80`, which is the IP for the `master` node. Go to this url and we can see the live environment, currently `blue`, showing `Version 1`. You can see the staging environment, currently `green`, by going to port `8080` of the same IP. That will be `45.55.185.18:8080` in this case. This will show you `Version 2`.
 
 Now, the users can see the version 1 of your app and only you can see version 2. You can test the new version and if you are satisfied, you can switch the live environment to `green`. To do this, use the following command.
 
@@ -367,5 +369,5 @@ Once you are done, the services can be stopped and the hosts removed with the fo
 {% highlight bash %}
 docker-compose down
 docker-machine stop consul master slave
-docker-compose rm consul master slave
+docker-machine rm consul master slave
 {% endhighlight %}
