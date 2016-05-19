@@ -5,8 +5,8 @@
     <description>Hi, botleg is a blog where you can find tutorials and techniques in web development, devops, databases, cloud computing and anything related to technology.</description>
     <link>https://botleg.com/</link>
     <atom:link href="https://botleg.com/feed" rel="self" type="application/rss+xml"/>
-    <pubDate>Sun, 10 Apr 2016 19:59:00 +0530</pubDate>
-    <lastBuildDate>Sun, 10 Apr 2016 19:59:00 +0530</lastBuildDate>
+    <pubDate>Thu, 19 May 2016 19:42:33 +0530</pubDate>
+    <lastBuildDate>Thu, 19 May 2016 19:42:33 +0530</lastBuildDate>
     <generator>Jekyll v3.0.1</generator>
     
       <item>
@@ -209,6 +209,7 @@ ENTRYPOINT &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s2
       - &lt;span class=&quot;s2&quot;&gt;&quot;80:80&quot;&lt;/span&gt;
       - &lt;span class=&quot;s2&quot;&gt;&quot;8080:8080&quot;&lt;/span&gt;
     &lt;span class=&quot;n&quot;&gt;environment&lt;/span&gt;:
+      - &lt;span class=&quot;n&quot;&gt;constraint&lt;/span&gt;:&lt;span class=&quot;n&quot;&gt;node&lt;/span&gt;==&lt;span class=&quot;n&quot;&gt;master&lt;/span&gt;
       - &lt;span class=&quot;n&quot;&gt;CONSUL_URL&lt;/span&gt;=${&lt;span class=&quot;n&quot;&gt;KV_IP&lt;/span&gt;}:&lt;span class=&quot;m&quot;&gt;8500&lt;/span&gt;
       - &lt;span class=&quot;n&quot;&gt;BLUE_NAME&lt;/span&gt;=&lt;span class=&quot;n&quot;&gt;blue&lt;/span&gt;
       - &lt;span class=&quot;n&quot;&gt;GREEN_NAME&lt;/span&gt;=&lt;span class=&quot;n&quot;&gt;green&lt;/span&gt;
@@ -252,6 +253,7 @@ ENTRYPOINT &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s2
 &lt;p&gt;We map the ports &lt;code class=&quot;highlighter-rouge&quot;&gt;80&lt;/code&gt; and &lt;code class=&quot;highlighter-rouge&quot;&gt;8080&lt;/code&gt; of the container to that of the host. We also need to set the following environment variables.&lt;/p&gt;
 
 &lt;ul&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;constraint:node&lt;/code&gt;: The name of the node where this service should run. We want this service to always run on the &lt;code class=&quot;highlighter-rouge&quot;&gt;master&lt;/code&gt; node.&lt;/li&gt;
   &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;CONSUL_URL&lt;/code&gt;: The url endpoint of consul. We have set it to &lt;code class=&quot;highlighter-rouge&quot;&gt;${KV_IP}:8500&lt;/code&gt;, where &lt;code class=&quot;highlighter-rouge&quot;&gt;KV_IP&lt;/code&gt; is the environment variable we have set while making the swarm.&lt;/li&gt;
   &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;BLUE_NAME&lt;/code&gt;: The docker service name of the blue image. Set to &lt;code class=&quot;highlighter-rouge&quot;&gt;blue&lt;/code&gt;.&lt;/li&gt;
   &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;GREEN_NAME&lt;/code&gt;: The docker service name of the green image. Set to &lt;code class=&quot;highlighter-rouge&quot;&gt;green&lt;/code&gt;.&lt;/li&gt;
@@ -278,7 +280,7 @@ tmp_green_1   nginx -g daemon off;   Up      443/tcp, 159.203.119.37:32768-&amp;
 tmp_green_2   nginx -g daemon off;   Up      443/tcp, 45.55.185.18:32779-&amp;gt;80/tcp
 tmp_green_3   nginx -g daemon off;   Up      443/tcp, 159.203.119.37:32770-&amp;gt;80/tcp&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
 
-&lt;p&gt;We can see the live production environment from the url given by the command, &lt;code class=&quot;highlighter-rouge&quot;&gt;docker-compose port bg 80&lt;/code&gt;. You will get some IP address like &lt;code class=&quot;highlighter-rouge&quot;&gt;45.55.185.18:80&lt;/code&gt;. Go to this url and we can see the live environment, currently &lt;code class=&quot;highlighter-rouge&quot;&gt;blue&lt;/code&gt;, showing &lt;code class=&quot;highlighter-rouge&quot;&gt;Version 1&lt;/code&gt;. You can see the staging environment, currently &lt;code class=&quot;highlighter-rouge&quot;&gt;green&lt;/code&gt;, by going to port &lt;code class=&quot;highlighter-rouge&quot;&gt;8080&lt;/code&gt; of the same IP. That will be &lt;code class=&quot;highlighter-rouge&quot;&gt;45.55.185.18:8080&lt;/code&gt; in this case. This will show you &lt;code class=&quot;highlighter-rouge&quot;&gt;Version 2&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;We can see the live production environment from the url given by the command, &lt;code class=&quot;highlighter-rouge&quot;&gt;docker-compose port bg 80&lt;/code&gt;. You will get some IP address like &lt;code class=&quot;highlighter-rouge&quot;&gt;45.55.185.18:80&lt;/code&gt;, which is the IP for the &lt;code class=&quot;highlighter-rouge&quot;&gt;master&lt;/code&gt; node. Go to this url and we can see the live environment, currently &lt;code class=&quot;highlighter-rouge&quot;&gt;blue&lt;/code&gt;, showing &lt;code class=&quot;highlighter-rouge&quot;&gt;Version 1&lt;/code&gt;. You can see the staging environment, currently &lt;code class=&quot;highlighter-rouge&quot;&gt;green&lt;/code&gt;, by going to port &lt;code class=&quot;highlighter-rouge&quot;&gt;8080&lt;/code&gt; of the same IP. That will be &lt;code class=&quot;highlighter-rouge&quot;&gt;45.55.185.18:8080&lt;/code&gt; in this case. This will show you &lt;code class=&quot;highlighter-rouge&quot;&gt;Version 2&lt;/code&gt;.&lt;/p&gt;
 
 &lt;p&gt;Now, the users can see the version 1 of your app and only you can see version 2. You can test the new version and if you are satisfied, you can switch the live environment to &lt;code class=&quot;highlighter-rouge&quot;&gt;green&lt;/code&gt;. To do this, use the following command.&lt;/p&gt;
 
@@ -344,7 +346,7 @@ tmp_green_3   nginx -g daemon off;   Up      443/tcp, 159.203.119.37:32770-&amp;
 
 &lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;docker-compose down
 docker-machine stop consul master slave
-docker-compose rm consul master slave&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+docker-machine rm consul master slave&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
 </description>
         <pubDate>Sun, 10 Apr 2016 23:30:00 +0530</pubDate>
         <link>https://botleg.com/stories/blue-green-deployment-with-docker/</link>
@@ -475,7 +477,7 @@ docker run -d &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
 
 &lt;span class=&quot;nb&quot;&gt;export &lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;SLAVE_IP&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;$(&lt;/span&gt;docker-machine ssh slave &lt;span class=&quot;s1&quot;&gt;&#39;ifconfig eth1 | grep &quot;inet addr:&quot; | cut -d: -f2 | cut -d&quot; &quot; -f1&#39;&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;)&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
 
-&lt;p&gt;You can create more nodes in the swarm by repeating these commands by just changing the hostname. We also need to have a registrator service running in each of these hosts to keep track of all services running in each host. The &lt;code class=&quot;highlighter-rouge&quot;&gt;gliderlabs/registrator&lt;/code&gt; image is used for this.&lt;/p&gt;
+&lt;p&gt;You can create more nodes in the swarm by repeating these commands by just changing the hostname. We also need to have a registrator service running in each of these hosts to keep track of all services running in each host. The version 6 of &lt;code class=&quot;highlighter-rouge&quot;&gt;gliderlabs/registrator&lt;/code&gt; image is used for this.&lt;/p&gt;
 
 &lt;p&gt;We need to connect our client to each of these hosts and run the registrator image.&lt;/p&gt;
 
@@ -485,7 +487,7 @@ docker run -d &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
   --name&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;registrator &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
   -h &lt;span class=&quot;k&quot;&gt;${&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;MASTER_IP&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;}&lt;/span&gt; &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
   --volume&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;/var/run/docker.sock:/tmp/docker.sock &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
-  gliderlabs/registrator:latest &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
+  gliderlabs/registrator:v6 &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
   consul://&lt;span class=&quot;k&quot;&gt;${&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;KV_IP&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;}&lt;/span&gt;:8500
 
 &lt;span class=&quot;nb&quot;&gt;eval&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;$(&lt;/span&gt;docker-machine env slave&lt;span class=&quot;k&quot;&gt;)&lt;/span&gt;
@@ -494,7 +496,7 @@ docker run -d &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
   --name&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;registrator &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
   -h &lt;span class=&quot;k&quot;&gt;${&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;SLAVE_IP&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;}&lt;/span&gt; &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
   --volume&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;/var/run/docker.sock:/tmp/docker.sock &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
-  gliderlabs/registrator:latest &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
+  gliderlabs/registrator:v6 &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
   consul://&lt;span class=&quot;k&quot;&gt;${&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;KV_IP&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;}&lt;/span&gt;:8500&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
 
 &lt;p&gt;This service will keep track of the information like IP and PORT of each service running in the host and saves it to consul. We can now connect the docker client to the swarm. For this, we use &lt;code class=&quot;highlighter-rouge&quot;&gt;-swarm&lt;/code&gt; parameter with the swarm master.&lt;/p&gt;
@@ -642,6 +644,7 @@ ENTRYPOINT &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s2
     &lt;span class=&quot;n&quot;&gt;ports&lt;/span&gt;:
       - &lt;span class=&quot;s2&quot;&gt;&quot;80:80&quot;&lt;/span&gt;
     &lt;span class=&quot;n&quot;&gt;environment&lt;/span&gt;:
+      - &lt;span class=&quot;n&quot;&gt;constraint&lt;/span&gt;:&lt;span class=&quot;n&quot;&gt;node&lt;/span&gt;==&lt;span class=&quot;n&quot;&gt;master&lt;/span&gt;
       - &lt;span class=&quot;n&quot;&gt;APP_NAME&lt;/span&gt;=&lt;span class=&quot;n&quot;&gt;tutum&lt;/span&gt;-&lt;span class=&quot;n&quot;&gt;nodejs&lt;/span&gt;-&lt;span class=&quot;n&quot;&gt;redis&lt;/span&gt;
       - &lt;span class=&quot;n&quot;&gt;CONSUL_URL&lt;/span&gt;=${&lt;span class=&quot;n&quot;&gt;KV_IP&lt;/span&gt;}:&lt;span class=&quot;m&quot;&gt;8500&lt;/span&gt;
     &lt;span class=&quot;n&quot;&gt;depends_on&lt;/span&gt;:
@@ -682,9 +685,10 @@ ENTRYPOINT &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s2
   &lt;span class=&quot;n&quot;&gt;back&lt;/span&gt;-&lt;span class=&quot;n&quot;&gt;tier&lt;/span&gt;:
     &lt;span class=&quot;n&quot;&gt;driver&lt;/span&gt;: &lt;span class=&quot;n&quot;&gt;overlay&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
 
-&lt;p&gt;We have new service name &lt;code class=&quot;highlighter-rouge&quot;&gt;lb&lt;/code&gt;. It is build using Dockerfile in the current directory. The port 80 of the container is mapped to port 80 of the host. We need to set up two environment variables:&lt;/p&gt;
+&lt;p&gt;We have new service name &lt;code class=&quot;highlighter-rouge&quot;&gt;lb&lt;/code&gt;. It is build using Dockerfile in the current directory. The port 80 of the container is mapped to port 80 of the host. We need to set up three environment variables:&lt;/p&gt;
 
 &lt;ul&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;constraint:node&lt;/code&gt;: The name of the node where this service should run. We want the load balancing to always run on the &lt;code class=&quot;highlighter-rouge&quot;&gt;master&lt;/code&gt; node.&lt;/li&gt;
   &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;APP_NAME&lt;/code&gt;: The image name of the service you need to load balance. Here, it is &lt;code class=&quot;highlighter-rouge&quot;&gt;tutum-nodejs-redis&lt;/code&gt;. You can load balance any service by providing its name here.&lt;/li&gt;
   &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;CONSUL_URL&lt;/code&gt;: The url of consul. We are using the &lt;code class=&quot;highlighter-rouge&quot;&gt;KV_IP&lt;/code&gt; environment variable for this.&lt;/li&gt;
 &lt;/ul&gt;
@@ -712,7 +716,7 @@ loadbalancingswarm_web_2   npm start                        Up      104.131.177.
 loadbalancingswarm_web_3   npm start                        Up      45.55.48.84:32778-&amp;gt;4000/tcp
 redis                      /entrypoint.sh redis-serve ...   Up      6379/tcp&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
 
-&lt;p&gt;In this case, you can go to &lt;code class=&quot;highlighter-rouge&quot;&gt;104.131.177.65&lt;/code&gt;, the IP of your &lt;code class=&quot;highlighter-rouge&quot;&gt;lb&lt;/code&gt; service to see the application running. Refresh the page and see the &lt;code class=&quot;highlighter-rouge&quot;&gt;host&lt;/code&gt; value changing. This shows that the load balancer is working.&lt;/p&gt;
+&lt;p&gt;In this case, you can go to &lt;code class=&quot;highlighter-rouge&quot;&gt;104.131.177.65&lt;/code&gt;, the IP of your master node to see the application running. Refresh the page and see the &lt;code class=&quot;highlighter-rouge&quot;&gt;host&lt;/code&gt; value changing. This shows that the load balancer is working.&lt;/p&gt;
 
 &lt;p&gt;You can see the nginx configuration generated by consul-template by using the command &lt;code class=&quot;highlighter-rouge&quot;&gt;docker exec -t lb cat /etc/nginx/conf.d/default.conf&lt;/code&gt;. This should produce an output that looks like this.&lt;/p&gt;
 
@@ -738,9 +742,9 @@ redis                      /entrypoint.sh redis-serve ...   Up      6379/tcp&lt;
 
 &lt;p&gt;You can stop the services and remove the hosts using the following commands.&lt;/p&gt;
 
-&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;docker-compose stop; docker-compose rm -f
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;docker-compose down
 docker-machine stop consul master slave
-docker-compose rm consul master slave&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+docker-machine rm consul master slave&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
 </description>
         <pubDate>Tue, 08 Mar 2016 07:30:00 +0530</pubDate>
         <link>https://botleg.com/stories/load-balancing-with-docker-swarm/</link>
