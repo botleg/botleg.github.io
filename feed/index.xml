@@ -5,9 +5,450 @@
     <description>Hi, botleg is a blog where you can find tutorials and techniques in web development, devops, databases, cloud computing and anything related to technology.</description>
     <link>https://botleg.com/</link>
     <atom:link href="https://botleg.com/feed" rel="self" type="application/rss+xml"/>
-    <pubDate>Thu, 19 May 2016 19:42:33 +0530</pubDate>
-    <lastBuildDate>Thu, 19 May 2016 19:42:33 +0530</lastBuildDate>
+    <pubDate>Wed, 13 Jul 2016 22:24:55 +0530</pubDate>
+    <lastBuildDate>Wed, 13 Jul 2016 22:24:55 +0530</lastBuildDate>
     <generator>Jekyll v3.0.1</generator>
+    
+      <item>
+        <title>Auto Scaling with Docker</title>
+        <author><name>Hanzel Jesheen</name></author>
+        <description>&lt;p&gt;In the article &lt;a href=&quot;/stories/load-balancing-with-docker-swarm/&quot;&gt;Load Balancing with Docker Swarm&lt;/a&gt;, we scaled a service by deploying multiple instance of the same docker image across the hosts in a Docker Swarm and distibuted the traffic among these instances using a load balancer. However, the scaling is manually done using &lt;code class=&quot;highlighter-rouge&quot;&gt;docker-compose&lt;/code&gt; commands.&lt;/p&gt;
+
+&lt;p&gt;In this article, we are going to automate the scaling procedure using &lt;a href=&quot;https://docs.docker.com/engine/reference/api/docker_remote_api/&quot;&gt;Docker Remote API&lt;/a&gt;. We will be creating a &lt;code class=&quot;highlighter-rouge&quot;&gt;Replicator&lt;/code&gt; docker image that listens to requests with container ID as the parameter and can create and deploy new docker images similar to the one with the given container ID.&lt;/p&gt;
+
+&lt;p&gt;The docker image for Replicator is &lt;a href=&quot;https://hub.docker.com/r/hanzel/replicator/&quot;&gt;hanzel/replicator&lt;/a&gt; and its code can be found &lt;a href=&quot;https://github.com/botleg/replicator&quot;&gt;here&lt;/a&gt;. Also, the docker image for testing this is &lt;a href=&quot;https://hub.docker.com/r/hanzel/node-replicate/&quot;&gt;hanzel/node-replicate&lt;/a&gt; and its code can be found &lt;a href=&quot;https://github.com/botleg/node-replicate&quot;&gt;here&lt;/a&gt;.&lt;/p&gt;
+
+&lt;h2 id=&quot;docker-remote-api&quot;&gt;Docker Remote API&lt;/h2&gt;
+
+&lt;p&gt;&lt;a href=&quot;https://docs.docker.com/engine/reference/api/docker_remote_api/&quot;&gt;Docker Remote API&lt;/a&gt; allows us to remotely access the Docker Engine and do all the actions that we could do locally. You can see the API reference &lt;a href=&quot;https://docs.docker.com/engine/reference/api/docker_remote_api_v1.23/&quot;&gt;here&lt;/a&gt;. For our purposes, we need the following endpoints:&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;GET /containers/&amp;lt;id&amp;gt;/json&lt;/code&gt;: To inspect the container.&lt;/li&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;POST /containers/create&lt;/code&gt;: To create a new container.&lt;/li&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;POST /containers/&amp;lt;id&amp;gt;/start&lt;/code&gt;: To deploy the new container.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;To send requests to the Docker Remote API, we need to verify the client using the certificate (cert.pem) and the private key (key.pem) files. To verify the client, we also need the certificate authority (ca.pem) file. When using Docker Machine, the environment variable &lt;code class=&quot;highlighter-rouge&quot;&gt;DOCKER_CERT_PATH&lt;/code&gt; contains the path of the folder containing these files.&lt;/p&gt;
+
+&lt;p&gt;The &lt;code class=&quot;highlighter-rouge&quot;&gt;Replicator&lt;/code&gt; docker image will listen for requests which contains a container ID. This ID is used to inspect the container and create one similar to it. Then the newly created container is deployed. Now we can scale by sending a request to this Replicator image with the container ID. This can be done in two ways:&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;A running container can request the Replicator with its own container ID, if it cannot handle the traffic.&lt;/li&gt;
+  &lt;li&gt;The container can send metrics to some monitoring service along with its container ID. Then the monitoring service can send the request to the Replicator with the container ID as needed.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h2 id=&quot;replicator-image&quot;&gt;Replicator Image&lt;/h2&gt;
+
+&lt;p&gt;The Replicator image will be based on the &lt;a href=&quot;https://www.alpinelinux.org/&quot;&gt;Alpine Linux&lt;/a&gt; and it will contain a &lt;a href=&quot;https://nodejs.org/&quot;&gt;Node.js&lt;/a&gt; server along with &lt;a href=&quot;https://www.nginx.com/&quot;&gt;NGINX&lt;/a&gt;. Node.js server will be used to listen for the request and communicate with Docker Remote API. NGINX is used as a reverse proxy to the Node.js server and it also handle the client verification with the certificates. The docker image for Replicator is &lt;a href=&quot;https://hub.docker.com/r/hanzel/replicator/&quot;&gt;hanzel/replicator&lt;/a&gt; and its code can be found &lt;a href=&quot;https://github.com/botleg/replicator&quot;&gt;here&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;We need the certificate and key file to access the Remote API. So, we use these same files to authenticate the clients of our Docker Image. We need to have the file &lt;code class=&quot;highlighter-rouge&quot;&gt;cert.pem&lt;/code&gt;, &lt;code class=&quot;highlighter-rouge&quot;&gt;key.pem&lt;/code&gt;, &lt;code class=&quot;highlighter-rouge&quot;&gt;ca.pem&lt;/code&gt; in the folder &lt;code class=&quot;highlighter-rouge&quot;&gt;/ssl&lt;/code&gt; in our Docker Image. We will discuss how to get the files there later when we are testing this image. We also need to set the &lt;code class=&quot;highlighter-rouge&quot;&gt;DOCKER_HOST&lt;/code&gt; environment variable with IP and port to access the Remote API. The Docker Machine save this in the format &lt;code class=&quot;highlighter-rouge&quot;&gt;tcp://&amp;lt;ip&amp;gt;:&amp;lt;port&amp;gt;&lt;/code&gt; inside the environment variable &lt;code class=&quot;highlighter-rouge&quot;&gt;DOCKER_HOST&lt;/code&gt;. We just have to pass this value to the docker image. In the next three sections, we will build the Replicator image.&lt;/p&gt;
+
+&lt;h2 id=&quot;nodejs-application&quot;&gt;Node.js Application&lt;/h2&gt;
+
+&lt;p&gt;The Node.js application will contain only one javascript file &lt;code class=&quot;highlighter-rouge&quot;&gt;server.js&lt;/code&gt; and uses &lt;a href=&quot;http://koajs.com/&quot;&gt;koa&lt;/a&gt; as the web server and &lt;code class=&quot;highlighter-rouge&quot;&gt;co-request&lt;/code&gt; to send requests to Docker Remote API. So the &lt;code class=&quot;highlighter-rouge&quot;&gt;package.json&lt;/code&gt; file will look like this.&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-json&quot; data-lang=&quot;json&quot;&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+  &lt;/span&gt;&lt;span class=&quot;nt&quot;&gt;&quot;name&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;replicator&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+  &lt;/span&gt;&lt;span class=&quot;nt&quot;&gt;&quot;main&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;server.js&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+  &lt;/span&gt;&lt;span class=&quot;nt&quot;&gt;&quot;scripts&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+    &lt;/span&gt;&lt;span class=&quot;nt&quot;&gt;&quot;start&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;node server.js&quot;&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+  &lt;/span&gt;&lt;span class=&quot;p&quot;&gt;},&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+  &lt;/span&gt;&lt;span class=&quot;nt&quot;&gt;&quot;dependencies&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+    &lt;/span&gt;&lt;span class=&quot;nt&quot;&gt;&quot;co-request&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;1.0.0&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+    &lt;/span&gt;&lt;span class=&quot;nt&quot;&gt;&quot;koa&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;1.2.0&quot;&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+  &lt;/span&gt;&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;The &lt;code class=&quot;highlighter-rouge&quot;&gt;server.js&lt;/code&gt; files starts with setting values to the variables.&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-javascript&quot; data-lang=&quot;javascript&quot;&gt;&lt;span class=&quot;kr&quot;&gt;const&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;app&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;require&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;koa&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)(),&lt;/span&gt;
+  &lt;span class=&quot;nx&quot;&gt;fs&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;require&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;fs&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt;
+  &lt;span class=&quot;nx&quot;&gt;request&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;require&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;co-request&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+
+&lt;span class=&quot;kr&quot;&gt;const&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;cert&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;fs&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;readFileSync&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;/ssl/cert.pem&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt;
+  &lt;span class=&quot;nx&quot;&gt;key&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;fs&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;readFileSync&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;/ssl/key.pem&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt;
+  &lt;span class=&quot;nx&quot;&gt;ca&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;fs&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;readFileSync&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;/ssl/ca.pem&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt;
+  &lt;span class=&quot;nx&quot;&gt;host&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;process&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;env&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;DOCKER_HOST&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;substr&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;6&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;We assiged the &lt;code class=&quot;highlighter-rouge&quot;&gt;koa&lt;/code&gt; module to &lt;code class=&quot;highlighter-rouge&quot;&gt;app&lt;/code&gt;, &lt;code class=&quot;highlighter-rouge&quot;&gt;fs&lt;/code&gt; module to &lt;code class=&quot;highlighter-rouge&quot;&gt;fs&lt;/code&gt; and &lt;code class=&quot;highlighter-rouge&quot;&gt;co-request&lt;/code&gt; module to &lt;code class=&quot;highlighter-rouge&quot;&gt;request&lt;/code&gt;. The file &lt;code class=&quot;highlighter-rouge&quot;&gt;/ssl/cert.pem&lt;/code&gt; is read and saved to &lt;code class=&quot;highlighter-rouge&quot;&gt;cert&lt;/code&gt;. Similarly, value of &lt;code class=&quot;highlighter-rouge&quot;&gt;key&lt;/code&gt; and &lt;code class=&quot;highlighter-rouge&quot;&gt;ca&lt;/code&gt; is set. We have the IP and port to access the Remote API in the environment variable &lt;code class=&quot;highlighter-rouge&quot;&gt;DOCKER_HOST&lt;/code&gt; in the format &lt;code class=&quot;highlighter-rouge&quot;&gt;tcp://&amp;lt;ip&amp;gt;:&amp;lt;port&amp;gt;&lt;/code&gt;. We strip out the &lt;code class=&quot;highlighter-rouge&quot;&gt;tcp://&lt;/code&gt; part of it and save it to &lt;code class=&quot;highlighter-rouge&quot;&gt;host&lt;/code&gt; variable. So, if the value of the environment variable &lt;code class=&quot;highlighter-rouge&quot;&gt;DOCKER_HOST&lt;/code&gt; is &lt;code class=&quot;highlighter-rouge&quot;&gt;tcp://192.168.99.100:2376&lt;/code&gt;, the value of &lt;code class=&quot;highlighter-rouge&quot;&gt;host&lt;/code&gt; will be &lt;code class=&quot;highlighter-rouge&quot;&gt;192.168.99.100:2376&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;Now we have to write the function that handles all the requests. We accept GET request with container ID as the URL parameter. So the request &lt;code class=&quot;highlighter-rouge&quot;&gt;GET /9d65f58cca99&lt;/code&gt; will be accepted and the container ID is &lt;code class=&quot;highlighter-rouge&quot;&gt;9d65f58cca99&lt;/code&gt;. The function looks like the following.&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-javascript&quot; data-lang=&quot;javascript&quot;&gt;&lt;span class=&quot;nx&quot;&gt;app&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;use&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kd&quot;&gt;function&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(){&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;this&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;url&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;!==&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&#39;/&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;    
+    &lt;span class=&quot;kd&quot;&gt;var&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;container&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;this&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;url&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;slice&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+
+    &lt;span class=&quot;kd&quot;&gt;var&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;options&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+      &lt;span class=&quot;na&quot;&gt;url&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&#39;https://&#39;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;host&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;/containers/&#39;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;container&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;/json&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+      &lt;span class=&quot;na&quot;&gt;cert&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;cert&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+      &lt;span class=&quot;na&quot;&gt;key&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;key&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+      &lt;span class=&quot;na&quot;&gt;ca&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;ca&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+
+    &lt;span class=&quot;kd&quot;&gt;var&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;info&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;yield&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;request&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;options&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+
+    &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;info&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;statusCode&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;==&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;200&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+      &lt;span class=&quot;nx&quot;&gt;options&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;url&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&#39;https://&#39;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;host&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;/containers/create&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+      &lt;span class=&quot;nx&quot;&gt;options&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;json&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;kc&quot;&gt;true&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+      &lt;span class=&quot;nx&quot;&gt;options&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;body&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;JSON&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;parse&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;info&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;body&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;).&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;Config&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+      &lt;span class=&quot;nx&quot;&gt;options&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;body&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;Hostname&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+      &lt;span class=&quot;nx&quot;&gt;options&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;body&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;HostConfig&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;JSON&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;parse&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;info&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;body&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;).&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;HostConfig&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+      &lt;span class=&quot;kd&quot;&gt;var&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;init&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;yield&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;request&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;post&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;options&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+
+      &lt;span class=&quot;nx&quot;&gt;options&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;url&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&#39;https://&#39;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;host&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;/containers/&#39;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;init&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;body&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;Id&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;/start&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+      &lt;span class=&quot;nx&quot;&gt;options&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;body&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;kc&quot;&gt;null&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+      &lt;span class=&quot;kd&quot;&gt;var&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;start&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;yield&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;request&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;post&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;options&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+
+      &lt;span class=&quot;k&quot;&gt;this&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;status&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;200&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+      &lt;span class=&quot;k&quot;&gt;this&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;body&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&#39;done&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;else&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;this&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;status&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;404&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;this&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;body&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&#39;invalid container id&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; 
+    &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+  &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;else&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;this&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;status&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;400&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;this&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;body&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&#39;container id missing&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+  &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;});&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;First of all, we check if there is any URL parameter. If there is no parameter, we send a &lt;code class=&quot;highlighter-rouge&quot;&gt;400 BAD REQUEST&lt;/code&gt; response. Or else, we take the container ID from the URL, save it in &lt;code class=&quot;highlighter-rouge&quot;&gt;container&lt;/code&gt; variable and continue. We send a &lt;code class=&quot;highlighter-rouge&quot;&gt;GET /containers/&amp;lt;id&amp;gt;/json&lt;/code&gt; request to the Docker Remote API to get the configuration of the given image using the &lt;code class=&quot;highlighter-rouge&quot;&gt;cert&lt;/code&gt;, &lt;code class=&quot;highlighter-rouge&quot;&gt;key&lt;/code&gt; and &lt;code class=&quot;highlighter-rouge&quot;&gt;ca&lt;/code&gt; variables for authentication. The URL for this is &lt;code class=&quot;highlighter-rouge&quot;&gt;&#39;https://&#39;+host+&#39;/containers/&#39;+container+&#39;/json&#39;&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;If the response code for this request is not 200, we send a &lt;code class=&quot;highlighter-rouge&quot;&gt;404 NOT FOUND&lt;/code&gt; response. This happens when the container ID is invalid. If the response code is 200, we continue. Now, we have to send a &lt;code class=&quot;highlighter-rouge&quot;&gt;POST /containers/create&lt;/code&gt; request. The body of this request must contain the configuration of the Docker Image that we wish to create. As we are going to duplicate the image, whose ID was given, this can be obtained from the reponse of the previous request. The body of this request is composed of the &lt;code class=&quot;highlighter-rouge&quot;&gt;Config&lt;/code&gt; object of the previous response.&lt;/p&gt;
+
+&lt;p&gt;Now we need to empty the value of &lt;code class=&quot;highlighter-rouge&quot;&gt;Hostname&lt;/code&gt; parameter in the body. This is done so that the newly created image will have a unique hostname which is the substring of its ID. Now we have to set the &lt;code class=&quot;highlighter-rouge&quot;&gt;HostConfig&lt;/code&gt; parameter in the request body. This is be obtained from the &lt;code class=&quot;highlighter-rouge&quot;&gt;HostConfig&lt;/code&gt; object in the previous reponse. Now we send this &lt;code class=&quot;highlighter-rouge&quot;&gt;POST /containers/create&lt;/code&gt; request and the new container is created. The response from this request will contain the ID of the new container in the &lt;code class=&quot;highlighter-rouge&quot;&gt;Id&lt;/code&gt; parameter.&lt;/p&gt;
+
+&lt;p&gt;Now we send the &lt;code class=&quot;highlighter-rouge&quot;&gt;POST /containers/&amp;lt;id&amp;gt;/start&lt;/code&gt; request to start this newly created container. The ID for this reqeust can be obtained from the previous response, so the URL will be &lt;code class=&quot;highlighter-rouge&quot;&gt;&#39;https://&#39;+host+&#39;/containers/&#39;+init.body.Id+&#39;/start&#39;&lt;/code&gt;. This will start the new container and we can now send the &lt;code class=&quot;highlighter-rouge&quot;&gt;200 OK&lt;/code&gt; response with &lt;code class=&quot;highlighter-rouge&quot;&gt;done&lt;/code&gt; as the body.&lt;/p&gt;
+
+&lt;p&gt;Finally, we need to make this app listen to the port &lt;code class=&quot;highlighter-rouge&quot;&gt;3000&lt;/code&gt; using the command, &lt;code class=&quot;highlighter-rouge&quot;&gt;app.listen(3000)&lt;/code&gt;. So the entire &lt;code class=&quot;highlighter-rouge&quot;&gt;server.js&lt;/code&gt; file looks like this.&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-javascript&quot; data-lang=&quot;javascript&quot;&gt;&lt;span class=&quot;kr&quot;&gt;const&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;app&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;require&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;koa&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)(),&lt;/span&gt;
+  &lt;span class=&quot;nx&quot;&gt;fs&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;require&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;fs&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt;
+  &lt;span class=&quot;nx&quot;&gt;request&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;require&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;co-request&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+
+&lt;span class=&quot;kr&quot;&gt;const&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;cert&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;fs&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;readFileSync&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;/ssl/cert.pem&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt;
+  &lt;span class=&quot;nx&quot;&gt;key&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;fs&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;readFileSync&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;/ssl/key.pem&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt;
+  &lt;span class=&quot;nx&quot;&gt;ca&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;fs&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;readFileSync&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;/ssl/ca.pem&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt;
+  &lt;span class=&quot;nx&quot;&gt;host&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;process&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;env&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;DOCKER_HOST&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;substr&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;6&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+
+&lt;span class=&quot;nx&quot;&gt;app&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;use&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kd&quot;&gt;function&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(){&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;this&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;url&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;!==&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&#39;/&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;    
+    &lt;span class=&quot;kd&quot;&gt;var&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;container&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;this&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;url&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;slice&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+
+    &lt;span class=&quot;kd&quot;&gt;var&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;options&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+      &lt;span class=&quot;na&quot;&gt;url&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&#39;https://&#39;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;host&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;/containers/&#39;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;container&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;/json&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+      &lt;span class=&quot;na&quot;&gt;cert&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;cert&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+      &lt;span class=&quot;na&quot;&gt;key&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;key&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+      &lt;span class=&quot;na&quot;&gt;ca&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;ca&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+
+    &lt;span class=&quot;kd&quot;&gt;var&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;info&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;yield&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;request&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;options&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+
+    &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;info&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;statusCode&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;==&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;200&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+      &lt;span class=&quot;nx&quot;&gt;options&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;url&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&#39;https://&#39;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;host&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;/containers/create&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+      &lt;span class=&quot;nx&quot;&gt;options&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;json&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;kc&quot;&gt;true&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+      &lt;span class=&quot;nx&quot;&gt;options&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;body&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;JSON&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;parse&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;info&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;body&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;).&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;Config&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+      &lt;span class=&quot;nx&quot;&gt;options&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;body&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;Hostname&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+      &lt;span class=&quot;nx&quot;&gt;options&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;body&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;HostConfig&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;JSON&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;parse&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;info&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;body&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;).&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;HostConfig&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+      &lt;span class=&quot;kd&quot;&gt;var&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;init&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;yield&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;request&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;post&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;options&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+
+      &lt;span class=&quot;nx&quot;&gt;options&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;url&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&#39;https://&#39;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;host&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;/containers/&#39;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;init&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;body&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;Id&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;/start&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+      &lt;span class=&quot;nx&quot;&gt;options&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;body&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;kc&quot;&gt;null&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+      &lt;span class=&quot;kd&quot;&gt;var&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;start&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;yield&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;request&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;post&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;options&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+
+      &lt;span class=&quot;k&quot;&gt;this&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;status&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;200&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+      &lt;span class=&quot;k&quot;&gt;this&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;body&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&#39;done&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;else&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+      &lt;span class=&quot;k&quot;&gt;this&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;status&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;404&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+      &lt;span class=&quot;k&quot;&gt;this&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;body&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&#39;invalid container id&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; 
+    &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+  &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;else&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;this&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;status&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;400&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;this&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;body&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&#39;container id missing&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+  &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;});&lt;/span&gt;
+
+&lt;span class=&quot;nx&quot;&gt;app&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;listen&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;3000&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;h2 id=&quot;nginx-configuration&quot;&gt;NGINX Configuration&lt;/h2&gt;
+
+&lt;p&gt;We are using NGINX as the reverse proxy to our Node.js Application. NGINX is also used for SSL termination and client authentication. The encrypted requests will be received by the NGINX server, the SSL will be terminated and the plain-text requests will be forwarded to our Node.js server running at port &lt;code class=&quot;highlighter-rouge&quot;&gt;3000&lt;/code&gt;. The configuration file &lt;code class=&quot;highlighter-rouge&quot;&gt;nginx.conf&lt;/code&gt; look like this.&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-nginx&quot; data-lang=&quot;nginx&quot;&gt;&lt;span class=&quot;k&quot;&gt;worker_processes&lt;/span&gt;  &lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;pid&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;/var/run/nginx.pid&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+
+&lt;span class=&quot;k&quot;&gt;events&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;kn&quot;&gt;worker_connections&lt;/span&gt;  &lt;span class=&quot;mi&quot;&gt;1024&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+&lt;span class=&quot;k&quot;&gt;http&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;kn&quot;&gt;server&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;kn&quot;&gt;listen&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;443&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;ssl&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+
+    &lt;span class=&quot;kn&quot;&gt;ssl_certificate&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;/ssl/cert.pem&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;kn&quot;&gt;ssl_certificate_key&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;/ssl/key.pem&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;kn&quot;&gt;ssl_client_certificate&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;/ssl/ca.pem&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;kn&quot;&gt;ssl_verify_client&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;on&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+
+    &lt;span class=&quot;kn&quot;&gt;location&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;/&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+      &lt;span class=&quot;kn&quot;&gt;add_header&lt;/span&gt;          &lt;span class=&quot;s&quot;&gt;Access-Control-Allow-Origin&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+      &lt;span class=&quot;kn&quot;&gt;add_header&lt;/span&gt;          &lt;span class=&quot;s&quot;&gt;Access-Control-Allow-Methods&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;GET&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+      &lt;span class=&quot;kn&quot;&gt;proxy_pass&lt;/span&gt;          &lt;span class=&quot;s&quot;&gt;http://127.0.0.1:3000/&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+      &lt;span class=&quot;kn&quot;&gt;proxy_set_header&lt;/span&gt;    &lt;span class=&quot;s&quot;&gt;X-Real-IP&lt;/span&gt;         &lt;span class=&quot;nv&quot;&gt;$remote_addr&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+      &lt;span class=&quot;kn&quot;&gt;proxy_set_header&lt;/span&gt;    &lt;span class=&quot;s&quot;&gt;X-Forwarded-For&lt;/span&gt;   &lt;span class=&quot;nv&quot;&gt;$proxy_add_x_forwarded_for&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+      &lt;span class=&quot;kn&quot;&gt;proxy_set_header&lt;/span&gt;    &lt;span class=&quot;s&quot;&gt;X_FORWARDED_PROTO&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;https&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+      &lt;span class=&quot;kn&quot;&gt;proxy_set_header&lt;/span&gt;    &lt;span class=&quot;s&quot;&gt;Host&lt;/span&gt;              &lt;span class=&quot;nv&quot;&gt;$http_host&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+      &lt;span class=&quot;kn&quot;&gt;proxy_buffering&lt;/span&gt;     &lt;span class=&quot;no&quot;&gt;off&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+      &lt;span class=&quot;kn&quot;&gt;proxy_redirect&lt;/span&gt;      &lt;span class=&quot;no&quot;&gt;off&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+  &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;NGINX listens to port 443 with SSL turned on. As, port 443 is the default port for SSL, we can now access this service with &lt;code class=&quot;highlighter-rouge&quot;&gt;https&lt;/code&gt; without any ports. We authenticate the clients using the files &lt;code class=&quot;highlighter-rouge&quot;&gt;cert.pem&lt;/code&gt;, &lt;code class=&quot;highlighter-rouge&quot;&gt;key.pem&lt;/code&gt; and &lt;code class=&quot;highlighter-rouge&quot;&gt;ca.pem&lt;/code&gt; in the &lt;code class=&quot;highlighter-rouge&quot;&gt;/ssl&lt;/code&gt; folder. We use the &lt;code class=&quot;highlighter-rouge&quot;&gt;proxy_pass&lt;/code&gt; parameter to pass these requests to the Node.js server listening at port &lt;code class=&quot;highlighter-rouge&quot;&gt;3000&lt;/code&gt;.&lt;/p&gt;
+
+&lt;h2 id=&quot;replicator-dockerfile&quot;&gt;Replicator Dockerfile&lt;/h2&gt;
+
+&lt;p&gt;We need to have both Node.js and NGINX to be running inside the docker image. So we will write a script &lt;code class=&quot;highlighter-rouge&quot;&gt;start.sh&lt;/code&gt; which acts as our entry point.&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;&lt;span class=&quot;c&quot;&gt;#!/bin/sh&lt;/span&gt;
+
+nginx -g &lt;span class=&quot;s1&quot;&gt;&#39;daemon off;&#39;&lt;/span&gt; &amp;amp;
+npm start&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;Our Docker Image will be based on Alpine Linux with Node.js server and NGINX running in it. We need to put the four files &lt;code class=&quot;highlighter-rouge&quot;&gt;package.json&lt;/code&gt;, &lt;code class=&quot;highlighter-rouge&quot;&gt;server.js&lt;/code&gt;, &lt;code class=&quot;highlighter-rouge&quot;&gt;nginx.conf&lt;/code&gt; and &lt;code class=&quot;highlighter-rouge&quot;&gt;start.sh&lt;/code&gt; into a folder named &lt;code class=&quot;highlighter-rouge&quot;&gt;files&lt;/code&gt;. Create the &lt;code class=&quot;highlighter-rouge&quot;&gt;Dockerfile&lt;/code&gt; in the folder containing this &lt;code class=&quot;highlighter-rouge&quot;&gt;files&lt;/code&gt; folder and it will contain the following.&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-c&quot; data-lang=&quot;c&quot;&gt;&lt;span class=&quot;n&quot;&gt;FROM&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;mhart&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;/&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;alpine&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;node&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;6&lt;/span&gt;
+
+&lt;span class=&quot;n&quot;&gt;RUN&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;apk&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;add&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;--&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;update&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;--&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;no&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;cache&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;nginx&lt;/span&gt;
+
+&lt;span class=&quot;n&quot;&gt;ADD&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;files&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;/&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;package&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;json&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;files&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;/&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;server&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;js&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;/&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;code&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;/&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;WORKDIR&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;/&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;code&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;RUN&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;npm&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;install&lt;/span&gt;
+
+&lt;span class=&quot;n&quot;&gt;ADD&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;files&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;/&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;nginx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;conf&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;/&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;etc&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;/&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;nginx&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;ADD&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;files&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;/&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;start&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;sh&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;/&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;bin&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;/&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;start&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;sh&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;RUN&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;chmod&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;x&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;/&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;bin&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;/&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;start&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;sh&lt;/span&gt;
+
+&lt;span class=&quot;n&quot;&gt;EXPOSE&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;443&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;ENTRYPOINT&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;/bin/start.sh&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;The base image is &lt;code class=&quot;highlighter-rouge&quot;&gt;mhart/alpine-node:6&lt;/code&gt;, which is based on Alpine Linux and contains Node.js v6. We install nginx using Alpine Pacakge Manager, &lt;code class=&quot;highlighter-rouge&quot;&gt;apk&lt;/code&gt;. We move the files &lt;code class=&quot;highlighter-rouge&quot;&gt;package.json&lt;/code&gt; and &lt;code class=&quot;highlighter-rouge&quot;&gt;server.js&lt;/code&gt; to the folder &lt;code class=&quot;highlighter-rouge&quot;&gt;/code&lt;/code&gt; in the image and it will act as the working directory. We run &lt;code class=&quot;highlighter-rouge&quot;&gt;npm install&lt;/code&gt; in this location to install all Node.js dependencies from &lt;code class=&quot;highlighter-rouge&quot;&gt;package.json&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;Next, we move the file &lt;code class=&quot;highlighter-rouge&quot;&gt;nginx.conf&lt;/code&gt; to &lt;code class=&quot;highlighter-rouge&quot;&gt;/etc/nginx&lt;/code&gt; folder and &lt;code class=&quot;highlighter-rouge&quot;&gt;start.sh&lt;/code&gt; to &lt;code class=&quot;highlighter-rouge&quot;&gt;/bin&lt;/code&gt; folder. We make the &lt;code class=&quot;highlighter-rouge&quot;&gt;start.sh&lt;/code&gt; executable with &lt;code class=&quot;highlighter-rouge&quot;&gt;chmod&lt;/code&gt; command. The port &lt;code class=&quot;highlighter-rouge&quot;&gt;443&lt;/code&gt; will be exposed and accessible from outside. This port is listened by NGINX. Finally, we set the &lt;code class=&quot;highlighter-rouge&quot;&gt;start.sh&lt;/code&gt; file as the entry point to this image. You can build this image with the command &lt;code class=&quot;highlighter-rouge&quot;&gt;docker build -t replicator .&lt;/code&gt;.&lt;/p&gt;
+
+&lt;h2 id=&quot;testing&quot;&gt;Testing&lt;/h2&gt;
+
+&lt;p&gt;To send requests to the replicator from inside a running container, the replicator must run in the same network. If the container name of the replicator image is &lt;code class=&quot;highlighter-rouge&quot;&gt;replicator&lt;/code&gt;, we can send request to &lt;code class=&quot;highlighter-rouge&quot;&gt;https://replicator&lt;/code&gt;. We also need to provide the container ID as the URL parameter. This value can be accessed from the environment variable &lt;code class=&quot;highlighter-rouge&quot;&gt;HOSTNAME&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;For authentication of this request, we need to provide the certificate file (cert.pem) and its private key (key.pem). If &lt;code class=&quot;highlighter-rouge&quot;&gt;curl&lt;/code&gt; is installed in the image and the authentication files are in &lt;code class=&quot;highlighter-rouge&quot;&gt;/ssl&lt;/code&gt; folder, we can make this request using the following command.&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;curl --insecure --cert /ssl/cert.pem --key /ssl/key.pem &lt;span class=&quot;s2&quot;&gt;&quot;https://replicator/&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$HOSTNAME&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;To test the working of this replicator image, I have made a docker image. This docker image contains a Node.js server that server an HTML page with a button. If the button is clicked, the above &lt;code class=&quot;highlighter-rouge&quot;&gt;curl&lt;/code&gt; command is executed. I have built it into a docker image, &lt;a href=&quot;https://hub.docker.com/r/hanzel/node-replicate/&quot;&gt;hanzel/node-replicate&lt;/a&gt; and its code can be found &lt;a href=&quot;https://github.com/botleg/node-replicate&quot;&gt;here&lt;/a&gt;. With this image, we can see that everytime we click the button a new instance of this service will be spun up. We will be deploying all this to a Docker Swarm now.&lt;/p&gt;
+
+&lt;h2 id=&quot;creating-the-swarm&quot;&gt;Creating the Swarm&lt;/h2&gt;
+
+&lt;p&gt;We will be using &lt;a href=&quot;https://docs.docker.com/machine/&quot;&gt;Docker Machine&lt;/a&gt; to create and manage remote hosts as a swarm. With Docker Machine, you can create hosts on your local machine or your cloud provider. Check &lt;a href=&quot;https://docs.docker.com/machine/drivers/&quot;&gt;this link&lt;/a&gt; to see the drivers supported by Docker Machine.&lt;/p&gt;
+
+&lt;p&gt;You need to have the following installed in you local computer:&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;Docker&lt;/code&gt;: version &amp;gt;= 1.10, to support Docker Compose File version 2 and Multi-Host networking.&lt;/li&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;Docker Machine&lt;/code&gt;: version &amp;gt;= 0.6&lt;/li&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;Docker Compose&lt;/code&gt;: version &amp;gt;= 1.6, to support Docker Compose file version 2&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;You can create the virtual hosts in you local system if you have &lt;a href=&quot;https://www.virtualbox.org/wiki/Downloads&quot;&gt;VirtualBox&lt;/a&gt; installed. For this demonstration, I will be using &lt;a href=&quot;https://www.digitalocean.com/&quot;&gt;DigitalOcean&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;The first thing we need to do is to create the Docker Swarm using Docker Machine and set it up. I have explained how to do this in the article, &lt;a href=&quot;/stories/load-balancing-with-docker-swarm/&quot;&gt;Load Balancing with Docker Swarm&lt;/a&gt;. Follow the steps from &lt;code class=&quot;highlighter-rouge&quot;&gt;Initial Setup&lt;/code&gt; to &lt;code class=&quot;highlighter-rouge&quot;&gt;The Swarm&lt;/code&gt; of that article to create and setup the Swarm.&lt;/p&gt;
+
+&lt;p&gt;Once the swarm is setup, you can see the hosts with &lt;code class=&quot;highlighter-rouge&quot;&gt;docker-machine ls&lt;/code&gt; command. The output of this command must look something like this.&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;NAME     ACTIVE      DRIVER         STATE     URL                          SWARM             DOCKER
+consul   -           digitalocean   Running   tcp://104.131.23.60:2376                       v1.11.2
+master   &lt;span class=&quot;k&quot;&gt;*&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;swarm&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;   digitalocean   Running   tcp://104.131.109.181:2376   master &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;master&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;   v1.11.2
+slave    -           digitalocean   Running   tcp://45.55.243.156:2376     master            v1.11.2 &lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;h2 id=&quot;key-distribution&quot;&gt;Key Distribution&lt;/h2&gt;
+
+&lt;p&gt;For the replicator image to access the Docker Remote API, it needs the certificate file (cert.pem), private key (key.pem) and certificate authority file (ca.pem). As we are using Docker Machine, the value in the environment variable &lt;code class=&quot;highlighter-rouge&quot;&gt;DOCKER_CERT_PATH&lt;/code&gt; is the path of the folder containing these files. We are also going to use these same files to authenticate requests coming to the replicator. So we need to have these three files in the &lt;code class=&quot;highlighter-rouge&quot;&gt;replicator&lt;/code&gt; and &lt;code class=&quot;highlighter-rouge&quot;&gt;node-replicate&lt;/code&gt; image.&lt;/p&gt;
+
+&lt;p&gt;Before moving the files to the Docker images, we need to get the files to all the remote hosts that we create with Docker Machine. We create a new folder name &lt;code class=&quot;highlighter-rouge&quot;&gt;ssl&lt;/code&gt; and copy the required three file to this folder.&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;mkdir ssl
+cp &lt;span class=&quot;nv&quot;&gt;$DOCKER_CERT_PATH&lt;/span&gt;/cert.pem &lt;span class=&quot;nv&quot;&gt;$DOCKER_CERT_PATH&lt;/span&gt;/key.pem &lt;span class=&quot;nv&quot;&gt;$DOCKER_CERT_PATH&lt;/span&gt;/ca.pem ssl/&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;We now use &lt;code class=&quot;highlighter-rouge&quot;&gt;docker-machine scp&lt;/code&gt; command to copy the contents of &lt;code class=&quot;highlighter-rouge&quot;&gt;ssl&lt;/code&gt; folder to &lt;code class=&quot;highlighter-rouge&quot;&gt;/home/ssl&lt;/code&gt; folder in the remote hosts &lt;code class=&quot;highlighter-rouge&quot;&gt;master&lt;/code&gt; and &lt;code class=&quot;highlighter-rouge&quot;&gt;slave&lt;/code&gt;.&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;docker-machine scp -r ssl master:/home/ssl
+docker-machine scp -r ssl slave:/home/ssl&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;If you have more remote hosts, just repeat these commands by changing the host name. Once these files are in the remote hosts, you can create volumes that point from &lt;code class=&quot;highlighter-rouge&quot;&gt;/home/ssl&lt;/code&gt; in the host to &lt;code class=&quot;highlighter-rouge&quot;&gt;/ssl&lt;/code&gt; in the container, to bring these files into the containers.&lt;/p&gt;
+
+&lt;h2 id=&quot;running-with-docker-compose&quot;&gt;Running with Docker Compose&lt;/h2&gt;
+
+&lt;p&gt;We will test the working of the replicator using Docker Compose. The configuration file &lt;code class=&quot;highlighter-rouge&quot;&gt;docker-compose.yml&lt;/code&gt; looks like the following.&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-conf&quot; data-lang=&quot;conf&quot;&gt;&lt;span class=&quot;n&quot;&gt;version&lt;/span&gt;: &lt;span class=&quot;s1&quot;&gt;&#39;2&#39;&lt;/span&gt;
+
+&lt;span class=&quot;n&quot;&gt;networks&lt;/span&gt;:
+  &lt;span class=&quot;n&quot;&gt;web&lt;/span&gt;:
+    &lt;span class=&quot;n&quot;&gt;driver&lt;/span&gt;: &lt;span class=&quot;n&quot;&gt;overlay&lt;/span&gt;
+
+&lt;span class=&quot;n&quot;&gt;services&lt;/span&gt;:
+  &lt;span class=&quot;n&quot;&gt;replicator&lt;/span&gt;:
+    &lt;span class=&quot;n&quot;&gt;image&lt;/span&gt;: &lt;span class=&quot;n&quot;&gt;hanzel&lt;/span&gt;/&lt;span class=&quot;n&quot;&gt;replicator&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;container_name&lt;/span&gt;: &lt;span class=&quot;n&quot;&gt;replicator&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;ports&lt;/span&gt;:
+      - &lt;span class=&quot;s2&quot;&gt;&quot;443:443&quot;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;environment&lt;/span&gt;:
+      - &lt;span class=&quot;n&quot;&gt;constraint&lt;/span&gt;:&lt;span class=&quot;n&quot;&gt;node&lt;/span&gt;==&lt;span class=&quot;n&quot;&gt;slave&lt;/span&gt;
+      - &lt;span class=&quot;n&quot;&gt;DOCKER_HOST&lt;/span&gt;=${&lt;span class=&quot;n&quot;&gt;DOCKER_HOST&lt;/span&gt;}
+    &lt;span class=&quot;n&quot;&gt;volumes&lt;/span&gt;:
+      - /&lt;span class=&quot;n&quot;&gt;home&lt;/span&gt;/&lt;span class=&quot;n&quot;&gt;ssl&lt;/span&gt;:/&lt;span class=&quot;n&quot;&gt;ssl&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;networks&lt;/span&gt;:
+      - &lt;span class=&quot;n&quot;&gt;web&lt;/span&gt;
+
+  &lt;span class=&quot;n&quot;&gt;lb&lt;/span&gt;:
+    &lt;span class=&quot;n&quot;&gt;image&lt;/span&gt;: &lt;span class=&quot;n&quot;&gt;hanzel&lt;/span&gt;/&lt;span class=&quot;n&quot;&gt;load&lt;/span&gt;-&lt;span class=&quot;n&quot;&gt;balancing&lt;/span&gt;-&lt;span class=&quot;n&quot;&gt;swarm&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;container_name&lt;/span&gt;: &lt;span class=&quot;n&quot;&gt;lb&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;ports&lt;/span&gt;:
+      - &lt;span class=&quot;s2&quot;&gt;&quot;80:80&quot;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;environment&lt;/span&gt;:
+      - &lt;span class=&quot;n&quot;&gt;constraint&lt;/span&gt;:&lt;span class=&quot;n&quot;&gt;node&lt;/span&gt;==&lt;span class=&quot;n&quot;&gt;master&lt;/span&gt;
+      - &lt;span class=&quot;n&quot;&gt;APP_NAME&lt;/span&gt;=&lt;span class=&quot;n&quot;&gt;node&lt;/span&gt;-&lt;span class=&quot;n&quot;&gt;replicate&lt;/span&gt;
+      - &lt;span class=&quot;n&quot;&gt;CONSUL_URL&lt;/span&gt;=${&lt;span class=&quot;n&quot;&gt;KV_IP&lt;/span&gt;}:&lt;span class=&quot;m&quot;&gt;8500&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;depends_on&lt;/span&gt;:
+      - &lt;span class=&quot;n&quot;&gt;web&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;networks&lt;/span&gt;:
+      - &lt;span class=&quot;n&quot;&gt;web&lt;/span&gt;
+
+  &lt;span class=&quot;n&quot;&gt;web&lt;/span&gt;:
+    &lt;span class=&quot;n&quot;&gt;image&lt;/span&gt;: &lt;span class=&quot;n&quot;&gt;hanzel&lt;/span&gt;/&lt;span class=&quot;n&quot;&gt;node&lt;/span&gt;-&lt;span class=&quot;n&quot;&gt;replicate&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;ports&lt;/span&gt;:
+      - &lt;span class=&quot;s2&quot;&gt;&quot;3000&quot;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;volumes&lt;/span&gt;:
+      - /&lt;span class=&quot;n&quot;&gt;home&lt;/span&gt;/&lt;span class=&quot;n&quot;&gt;ssl&lt;/span&gt;:/&lt;span class=&quot;n&quot;&gt;ssl&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;networks&lt;/span&gt;:
+      - &lt;span class=&quot;n&quot;&gt;web&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;We have an overlay network &lt;code class=&quot;highlighter-rouge&quot;&gt;web&lt;/code&gt; that contains all the services. The first service is the &lt;code class=&quot;highlighter-rouge&quot;&gt;replicator&lt;/code&gt; and uses &lt;code class=&quot;highlighter-rouge&quot;&gt;hanzel/replicator&lt;/code&gt; image. We give the name &lt;code class=&quot;highlighter-rouge&quot;&gt;replicator&lt;/code&gt; for this container and export the port &lt;code class=&quot;highlighter-rouge&quot;&gt;443&lt;/code&gt;. This make the replicator accessible at &lt;code class=&quot;highlighter-rouge&quot;&gt;https://replicator&lt;/code&gt;. We set the &lt;code class=&quot;highlighter-rouge&quot;&gt;constraint:node&lt;/code&gt; environment variable to &lt;code class=&quot;highlighter-rouge&quot;&gt;slave&lt;/code&gt; so that this container always runs in the &lt;code class=&quot;highlighter-rouge&quot;&gt;slave&lt;/code&gt; remote host. As discussed above, we need to set the &lt;code class=&quot;highlighter-rouge&quot;&gt;DOCKER_HOST&lt;/code&gt; environment variable to the URL to access the Remote API. This is set in the &lt;code class=&quot;highlighter-rouge&quot;&gt;DOCKER_HOST&lt;/code&gt; environment variable set by the &lt;code class=&quot;highlighter-rouge&quot;&gt;docker-machine&lt;/code&gt;. We also need to create a Docker Volume from &lt;code class=&quot;highlighter-rouge&quot;&gt;/home/ssl&lt;/code&gt; in the host to &lt;code class=&quot;highlighter-rouge&quot;&gt;/ssl&lt;/code&gt; in the container to share the certificates and keys.&lt;/p&gt;
+
+&lt;p&gt;The second service is a load balancer which can distibuted the traffic to different instances of the same image. To know more about this service, read my article &lt;a href=&quot;/stories/load-balancing-with-docker-swarm/&quot;&gt;Load Balancing with Docker Swarm&lt;/a&gt;. The third service is named &lt;code class=&quot;highlighter-rouge&quot;&gt;web&lt;/code&gt; and contains the image &lt;code class=&quot;highlighter-rouge&quot;&gt;hanzel/node-replicate&lt;/code&gt; that was created to test the replicator. It listens to port &lt;code class=&quot;highlighter-rouge&quot;&gt;3000&lt;/code&gt;, so it is exposed. As this service make requests to the replicator, it need the same certificates and keys for authentication. This is done by creating a docker volume similar to &lt;code class=&quot;highlighter-rouge&quot;&gt;replicator&lt;/code&gt; service.&lt;/p&gt;
+
+&lt;p&gt;Make sure that your docker client is connected to the swarm with &lt;code class=&quot;highlighter-rouge&quot;&gt;eval $(docker-machine env -swarm master)&lt;/code&gt; command. Now open up the terminal in the folder containing &lt;code class=&quot;highlighter-rouge&quot;&gt;docker-compose.yml&lt;/code&gt; and start the services using the following command.&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;docker-compose up -d&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;This will start these services. You can see the running containers with the command &lt;code class=&quot;highlighter-rouge&quot;&gt;docker-compose ps&lt;/code&gt;. The output of the command must look like this.&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;Name         Command         State   Ports           
+------------------------------------------------------------------------
+lb           /bin/start.sh   Up      443/tcp, 104.131.109.181:80-&amp;gt;80/tcp
+replicator   /bin/start.sh   Up      104.131.109.181:443-&amp;gt;443/tcp
+tmp_web_1    npm start       Up      45.55.243.156:32772-&amp;gt;3000/tcp&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;We can see the application from the url given by the command, &lt;code class=&quot;highlighter-rouge&quot;&gt;docker-compose port lb 80&lt;/code&gt;. You will get some IP address like &lt;code class=&quot;highlighter-rouge&quot;&gt;104.131.109.181:80&lt;/code&gt;. Go to this url and we can see the running app. To test the &lt;code class=&quot;highlighter-rouge&quot;&gt;replicator&lt;/code&gt;, click on the &lt;code class=&quot;highlighter-rouge&quot;&gt;Replicate&lt;/code&gt; button. This sends a request to replicator with the current container’s ID and the replicator will create a new service similar to this and deploy it. Once all that is done, the text &lt;code class=&quot;highlighter-rouge&quot;&gt;done&lt;/code&gt; appears in the webpage.&lt;/p&gt;
+
+&lt;p&gt;Check again the running services with &lt;code class=&quot;highlighter-rouge&quot;&gt;docker-compose ps&lt;/code&gt; command and we can see two instances of our &lt;code class=&quot;highlighter-rouge&quot;&gt;node-replicate&lt;/code&gt; images running.&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;Name                Command         State   Ports           
+------------------------------------------------------------------------
+lb                  /bin/start.sh   Up      443/tcp, 104.131.109.181:80-&amp;gt;80/tcp
+replicator          /bin/start.sh   Up      104.131.109.181:443-&amp;gt;443/tcp
+reverent_dubinsky   npm start       Up      45.55.243.156:32773-&amp;gt;3000/tcp
+tmp_web_1           npm start       Up      45.55.243.156:32772-&amp;gt;3000/tcp&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;Here, the container named &lt;code class=&quot;highlighter-rouge&quot;&gt;reverent_dubinsky&lt;/code&gt; in the new one replicated. Everytime we press the button, a new instance will be deployed. You can also send the request to replicator externally. You need to have the certificate and key file in the &lt;code class=&quot;highlighter-rouge&quot;&gt;ssl&lt;/code&gt; folder. Run the command &lt;code class=&quot;highlighter-rouge&quot;&gt;docker ps&lt;/code&gt; to get the list of running container. Pick the required container and note its ID. Now run the following command to replicate this container.&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;curl --insecure --cert ssl/cert.pem --key ssl/key.pem &lt;span class=&quot;s2&quot;&gt;&quot;https://&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;$(&lt;/span&gt;docker-machine ip slave&lt;span class=&quot;k&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;/&amp;lt;container-id&amp;gt;&quot;&lt;/span&gt;
+
+&lt;span class=&quot;c&quot;&gt;# Example: If the container ID is &#39;d44f756ca3a1&#39;&lt;/span&gt;
+curl --insecure --cert ssl/cert.pem --key ssl/key.pem &lt;span class=&quot;s2&quot;&gt;&quot;https://&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;$(&lt;/span&gt;docker-machine ip slave&lt;span class=&quot;k&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;/d44f756ca3a1&quot;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;Run this command or press the button a few times and the output of &lt;code class=&quot;highlighter-rouge&quot;&gt;docker-compose ps&lt;/code&gt; will look something like this.&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;Name                Command         State                  Ports
+-------------------------------------------------------------------------------
+drunk_borg          npm start       Up      104.131.109.181:32770-&amp;gt;3000/tcp
+hungry_banach       npm start       Up      104.131.109.181:32769-&amp;gt;3000/tcp
+kickass_hoover      npm start       Up      45.55.243.156:32775-&amp;gt;3000/tcp
+lb                  /bin/start.sh   Up      443/tcp, 104.131.109.181:80-&amp;gt;80/tcp
+replicator          /bin/start.sh   Up      104.131.109.181:443-&amp;gt;443/tcp
+reverent_dubinsky   npm start       Up      45.55.243.156:32773-&amp;gt;3000/tcp
+sleepy_williams     npm start       Up      45.55.243.156:32774-&amp;gt;3000/tcp
+tmp_web_1           npm start       Up      45.55.243.156:32772-&amp;gt;3000/tcp &lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;You can still use the &lt;code class=&quot;highlighter-rouge&quot;&gt;docker-compose scale&lt;/code&gt; command to manually scale the services. Also, you can see that the load balancer is also updated with the new instances. You can see the load balancer configuration with the command &lt;code class=&quot;highlighter-rouge&quot;&gt;docker exec -t lb cat /etc/nginx/conf.d/default.conf&lt;/code&gt;. Its output looks something like this.&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-nginx&quot; data-lang=&quot;nginx&quot;&gt;&lt;span class=&quot;k&quot;&gt;upstream&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;node-replicate&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;kn&quot;&gt;least_conn&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+
+  &lt;span class=&quot;kn&quot;&gt;server&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;10.132.11.48&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;32770&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;max_fails=3&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;fail_timeout=60&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;weight=1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+  &lt;span class=&quot;kn&quot;&gt;server&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;10.132.11.48&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;32769&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;max_fails=3&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;fail_timeout=60&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;weight=1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+  &lt;span class=&quot;kn&quot;&gt;server&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;10.132.69.218&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;32775&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;max_fails=3&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;fail_timeout=60&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;weight=1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+  &lt;span class=&quot;kn&quot;&gt;server&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;10.132.69.218&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;32773&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;max_fails=3&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;fail_timeout=60&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;weight=1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+  &lt;span class=&quot;kn&quot;&gt;server&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;10.132.69.218&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;32774&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;max_fails=3&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;fail_timeout=60&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;weight=1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+  &lt;span class=&quot;kn&quot;&gt;server&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;10.132.69.218&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;32772&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;max_fails=3&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;fail_timeout=60&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;weight=1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+&lt;span class=&quot;k&quot;&gt;server&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;kn&quot;&gt;listen&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;80&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;default&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+
+  &lt;span class=&quot;kn&quot;&gt;location&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;/&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;kn&quot;&gt;proxy_pass&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;http://node-replicate&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+  &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;h2 id=&quot;conclusion&quot;&gt;Conclusion&lt;/h2&gt;
+
+&lt;p&gt;In this article, we can set up an auto-scaling system with Docker using Docker Remote API. This can be used to scale the service as the traffic increases. We have made a docker image to that replicates services and tested it on an app deployed with Docker Swarm.&lt;/p&gt;
+
+&lt;p&gt;Once you are done, the services can be stopped and the hosts removed with the following commands.&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;docker-compose down
+docker-machine stop consul master slave
+docker-machine rm consul master slave&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+</description>
+        <pubDate>Wed, 13 Jul 2016 23:30:00 +0530</pubDate>
+        <link>https://botleg.com/stories/auto-scaling-with-docker/</link>
+        <guid isPermaLink="true">https://botleg.com/stories/auto-scaling-with-docker/</guid>
+        
+        <category>auto-scaling</category>
+        
+        <category>replicator</category>
+        
+        <category>remote</category>
+        
+        <category>API</category>
+        
+        <category>docker</category>
+        
+        <category>machine</category>
+        
+        <category>swarm</category>
+        
+        <category>registrator</category>
+        
+        <category>nginx</category>
+        
+        <category>digitalocean</category>
+        
+        <category>compose</category>
+        
+        <category>machine</category>
+        
+        <category>bash</category>
+        
+        <category>Dockerfile</category>
+        
+        <category>Node.js</category>
+        
+        <category>nginx</category>
+        
+        
+        <category>devops</category>
+        
+      </item>
     
       <item>
         <title>Building Blue-Green Deployment with Docker</title>
@@ -1781,94 +2222,6 @@ WORKDIR /&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;app&lt;/span&gt;
         
         
         <category>javascript</category>
-        
-      </item>
-    
-      <item>
-        <title>Line numbers in Jekyll code blocks</title>
-        <author><name>Hanzel Jesheen</name></author>
-        <description>&lt;p&gt;One of the really cool feature of a &lt;a href=&quot;built in support for syntax highlighting&quot;&gt;Jekyll&lt;/a&gt; blog generator is the in-built support for syntax highlighting in code blocks. The styling of the code blocks is really good with the default settings except for one thing, line numbers. In this article, we are going to fix just that.&lt;/p&gt;
-
-&lt;h2 id=&quot;the-problem&quot;&gt;The Problem&lt;/h2&gt;
-&lt;p&gt;An ordinary code block without line numbers can be made by surrounding your code between &lt;code class=&quot;highlighter-rouge&quot;&gt;highlight&lt;/code&gt; liquid tag. You can also specify the language of the code block as follows.&lt;/p&gt;
-
-&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;{% highlight language %}
-//  YOUR CODE HERE
-{% endhighlight %}&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
-
-&lt;p&gt;The code block created will look something like this.&lt;/p&gt;
-
-&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-javascript&quot; data-lang=&quot;javascript&quot;&gt;&lt;span class=&quot;kd&quot;&gt;var&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;http&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;require&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;http&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
-
-&lt;span class=&quot;kd&quot;&gt;function&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;handleRequest&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;request&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;response&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
-  &lt;span class=&quot;nx&quot;&gt;response&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;end&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;`&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;Web&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;server&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;running&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;on&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;Node&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;js&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;v$&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;process&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;versions&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;node&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;}.&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;`&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
-&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
-
-&lt;span class=&quot;kd&quot;&gt;var&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;server&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;http&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;createServer&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;handleRequest&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
-&lt;span class=&quot;nx&quot;&gt;server&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;listen&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;8000&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
-
-&lt;p&gt;To add line numbers to this code block. Just add the keyword &lt;code class=&quot;highlighter-rouge&quot;&gt;linenos&lt;/code&gt; to the highlight tag. If the language of the code is &lt;code class=&quot;highlighter-rouge&quot;&gt;javascript&lt;/code&gt;, the liquid tag will look like this.&lt;/p&gt;
-
-&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;{% highlight javascript linenos %}
-//  YOUR CODE HERE
-{% endhighlight %}&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
-
-&lt;p&gt;After adding the line numbers, the code block will look something like this.&lt;/p&gt;
-
-&lt;p&gt;&lt;img src=&quot;/assets/images/code-lines@2x.jpg&quot; srcset=&quot;/assets/images/code-lines@1x.jpg 300w, /assets/images/code-lines@2x.jpg 600w, /assets/images/code-lines@3x.jpg 900w&quot; sizes=&quot;(min-width: 960px) 900px, 100vw&quot; alt=&quot;Code Block with line numbers&quot; class=&quot;center-image&quot; /&gt;
-&lt;em class=&quot;image-caption&quot;&gt;Code Block with line numbers&lt;/em&gt;&lt;/p&gt;
-
-&lt;p&gt;This is pretty bad. The line numbers and the code does not have any division and the colour of the line numbers confuses it with the code. Also, when we select the code, the line numbers are also selected.&lt;/p&gt;
-
-&lt;h2 id=&quot;the-tweaks&quot;&gt;The Tweaks&lt;/h2&gt;
-&lt;p&gt;We can fix the above problems with a couple of tweaks. We can modify the looks of the line numbers by changing the property of the class &lt;code class=&quot;highlighter-rouge&quot;&gt;.lineno&lt;/code&gt;. We add this class to the &lt;code class=&quot;highlighter-rouge&quot;&gt;_syntax-highlighting.scss&lt;/code&gt; file in our Jekyll project.&lt;/p&gt;
-
-&lt;p&gt;First of all, we will change its colour to something more subtle. Then we add some padding and border.&lt;/p&gt;
-
-&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-css&quot; data-lang=&quot;css&quot;&gt;&lt;span class=&quot;nc&quot;&gt;.lineno&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; 
-  &lt;span class=&quot;nl&quot;&gt;color&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;m&quot;&gt;#ccc&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; 
-  &lt;span class=&quot;nl&quot;&gt;display&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;inline-block&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; 
-  &lt;span class=&quot;nl&quot;&gt;padding&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;m&quot;&gt;0&lt;/span&gt; &lt;span class=&quot;m&quot;&gt;5px&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; 
-  &lt;span class=&quot;nl&quot;&gt;border-right&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;m&quot;&gt;1px&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;solid&lt;/span&gt; &lt;span class=&quot;m&quot;&gt;#ccc&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
-&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
-
-&lt;p&gt;To prevent the line numbers from being selected when we select the code block, we need to set the &lt;code class=&quot;highlighter-rouge&quot;&gt;user-select&lt;/code&gt; property of &lt;code class=&quot;highlighter-rouge&quot;&gt;.lineno&lt;/code&gt;. With vendor prefixes, it looks like this.&lt;/p&gt;
-
-&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-css&quot; data-lang=&quot;css&quot;&gt;&lt;span class=&quot;nc&quot;&gt;.lineno&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; 
-  &lt;span class=&quot;nl&quot;&gt;-webkit-touch-callout&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;none&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
-  &lt;span class=&quot;nl&quot;&gt;-webkit-user-select&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;none&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
-  &lt;span class=&quot;nl&quot;&gt;-khtml-user-select&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;none&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
-  &lt;span class=&quot;nl&quot;&gt;-moz-user-select&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;none&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
-  &lt;span class=&quot;nl&quot;&gt;-ms-user-select&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;none&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
-  &lt;span class=&quot;py&quot;&gt;user-select&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;none&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
-&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
-
-&lt;p&gt;The &lt;code class=&quot;highlighter-rouge&quot;&gt;.linenos&lt;/code&gt; class in &lt;code class=&quot;highlighter-rouge&quot;&gt;_syntax-highlighting.scss&lt;/code&gt; will now look like this.&lt;/p&gt;
-
-&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-css&quot; data-lang=&quot;css&quot;&gt;&lt;span class=&quot;nc&quot;&gt;.lineno&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; 
-  &lt;span class=&quot;nl&quot;&gt;color&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;m&quot;&gt;#ccc&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; 
-  &lt;span class=&quot;nl&quot;&gt;display&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;inline-block&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; 
-  &lt;span class=&quot;nl&quot;&gt;padding&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;m&quot;&gt;0&lt;/span&gt; &lt;span class=&quot;m&quot;&gt;5px&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; 
-  &lt;span class=&quot;nl&quot;&gt;border-right&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;m&quot;&gt;1px&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;solid&lt;/span&gt; &lt;span class=&quot;m&quot;&gt;#ccc&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
-  &lt;span class=&quot;nl&quot;&gt;-webkit-touch-callout&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;none&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
-  &lt;span class=&quot;nl&quot;&gt;-webkit-user-select&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;none&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
-  &lt;span class=&quot;nl&quot;&gt;-khtml-user-select&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;none&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
-  &lt;span class=&quot;nl&quot;&gt;-moz-user-select&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;none&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
-  &lt;span class=&quot;nl&quot;&gt;-ms-user-select&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;none&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
-  &lt;span class=&quot;py&quot;&gt;user-select&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;none&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
-&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
-
-&lt;h2 id=&quot;conclusion&quot;&gt;Conclusion&lt;/h2&gt;
-&lt;p&gt;By tweaking the &lt;code class=&quot;highlighter-rouge&quot;&gt;.lineno&lt;/code&gt; class, we can add better looking line numbers in Jekyll code blocks. You can also prevent the line numbers from being selected while selecting the code.&lt;/p&gt;
-</description>
-        <pubDate>Sun, 27 Sep 2015 16:30:00 +0530</pubDate>
-        <link>https://botleg.com/stories/line-numbers-in-jekyll-code-blocks/</link>
-        <guid isPermaLink="true">https://botleg.com/stories/line-numbers-in-jekyll-code-blocks/</guid>
-        
-        <category>highlight</category>
-        
-        
-        <category>jekyll</category>
         
       </item>
     

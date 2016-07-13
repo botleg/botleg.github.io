@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9 http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd" xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
+    <loc>https://botleg.com/stories/auto-scaling-with-docker/</loc>
+    <lastmod>2016-07-13T23:30:00+05:30</lastmod>
+  </url>
+  <url>
     <loc>https://botleg.com/stories/blue-green-deployment-with-docker/</loc>
     <lastmod>2016-04-10T23:30:00+05:30</lastmod>
   </url>
@@ -124,5 +128,8 @@
     </url>
     <url>
       <loc>https://botleg.com/stories/blue-green-deployment-with-docker/</loc>
+    </url>
+    <url>
+      <loc>https://botleg.com/stories/auto-scaling-with-docker/</loc>
     </url>
 </urlset>
