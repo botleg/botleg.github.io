@@ -8,7 +8,7 @@ bg: "background:rgb(0, 178, 100);background-image:linear-gradient(90deg, rgb(0, 
 date:   2016-04-10 18:00:00
 tags: blue-green live staging docker swarm registrator nginx consul consul-template overlay digitalocean compose machine bash Dockerfile
 ---
-Blue-Green Deployment is a strategy to release new version of the app without downtime. The basic idea behind this technique involves using two identical production environments, named `Blue` and `Green`. At any time, only one of these environment is live and serving the production traffic. The other one is used to test newer version or for roll-back.
+Blue-Green Deployment is a strategy to release new version of the app without downtime. The basic idea behind this technique involves using two identical production environments, named `Blue` and `Green`. At any time, only one of these environment is live and serving the production traffic. The other one is used to test newer version or for
 
 Let us assume that the current live production environment is Blue. When the new version is ready, we can deploy it to the non-production environment - Green. None of our users can see this new version as the live environment is still Blue. We can test the new version from the Green environment now. If this version is ready for release, we switch the production environment to Green and the users can now see the new release. Now the live version in at Green and staging can be done in Blue. If there is some error with the new release in Green, it is easy to roll-back to previous version by just switching the production environment back to Blue. Only thing to note here is that the switching is seamless.
 
