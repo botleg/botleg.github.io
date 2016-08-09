@@ -116,7 +116,7 @@ First of all, we set three variables:
 * `green`: The docker service name of the green environment, taken from environment variable `GREEN_NAME`.
 * `live`: Current live environment, `blue` or `green`, taken from the file `/var/live`.
 
-We will store the current live environment, `blue` or `green`, in the file `/var/live`. We cannot use environment variable for this beacuse we cannot globally change the value of environment variable from inside a running docker image. So we write the current live environment, while switching, to the file and read its content from inside consul-template.
+We will store the current live environment, `blue` or `green`, in the file `/var/live`. We cannot use environment variable for this because we cannot globally change the value of environment variable from inside a running docker image. So we write the current live environment, while switching, to the file and read its content from inside consul-template.
 
 Inside the http block, we create an upstream block for `blue` and `green`. Inside each of this upstream block, we specify the load balancing configuration for each service. The `least_conn` line causes nginx is to route traffic to the least connected instance. We need to generate `server` configuration lines for each instance of the service currently running. This is done by the code blocks, `{{"{{"}}range service $blue}}...{{"{{"}}end}}` and `{{"{{"}}range service $blue}}...{{"{{"}}end}}`. The code between these directives are repeated for each instance of the service running with `{{"{{"}}.Address}}` replaced by the address and `{{"{{"}}.Port}}` replaced by its port of that instance. If there is no instance of any service, we have the default `server 127.0.0.1:55000;` line that causes an error.
 
