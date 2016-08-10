@@ -8,7 +8,6 @@ bg: "background:rgb(142, 68, 173);background-image:linear-gradient(90deg, rgb(14
 date: 2016-07-13 18:00:00
 tags: auto-scaling replicator remote API docker machine swarm registrator nginx digitalocean compose machine bash Dockerfile Node.js nginx
 ---
-In the article [Load Balancing with Docker Swarm](/stories/load-balancing-with-docker-swarm/), we scaled a service by deploying multiple instance of the same docker image across the hosts in a Docker Swarm and distibuted the traffic among these instances using a load balancer. However, the scaling is manually done using `docker-compose` commands.
 
 In this article, we are going to automate the scaling procedure using [Docker Remote API](https://docs.docker.com/engine/reference/api/docker_remote_api/). We will be creating a `Replicator` docker image that listens to requests with container ID as the parameter and can create and deploy new docker images similar to the one with the given container ID.
 
