@@ -1,5 +1,5 @@
+site/
 Gemfile.lock
-test/dest
 _vendor/
 *.gem
 pkg/
@@ -21,4 +21,4 @@ tmp/*
 /test/source/file_name.txt
 .sublime/
 *.log
-node_modules/
+node/node_modules/

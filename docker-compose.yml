@@ -1,0 +1,17 @@
+version: '2'
+
+services:
+  blog:
+    image: hanzel/jekyll
+    container_name: blog
+    ports:
+      - 0.0.0.0:80:4000
+    volumes:
+      - ./site:/srv/site
+      - ./jekyll:/srv/jekyll
+    networks:
+      - blog
+
+networks:
+  blog:
+    driver: bridge
