@@ -2,7 +2,7 @@ version: '2'
 
 services:
   blog:
-    image: hanzel/jekyll
+    image: hanzel/botleg
     container_name: blog
     ports:
       - 0.0.0.0:80:4000
