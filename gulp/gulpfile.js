@@ -65,7 +65,7 @@ gulp.task('img', function() {
 			width : 900,
 			crop : false,
 			upscale : true,
-			format: 'jpeg',
+			format: 'jpg',
 			imageMagick: true
 		}))
 		.on('error', gutil.log)
@@ -87,7 +87,7 @@ gulp.task('img', function() {
 			width : 600,
 			crop : false,
 			upscale : true,
-			format: 'jpeg',
+			format: 'jpg',
 			imageMagick: true
 		}))
 		.on('error', gutil.log)
@@ -109,7 +109,7 @@ gulp.task('img', function() {
 			width : 300,
 			crop : false,
 			upscale : true,
-			format: 'jpeg',
+			format: 'jpg',
 			imageMagick: true
 		}))
 		.on('error', gutil.log)
