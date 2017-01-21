@@ -19,14 +19,14 @@ module Jekyll
         other_post['title'] != post['title']
       end
 
-      sorted_posts = other_posts.sort do |other_post|
+      sorted_posts = other_posts.sort_by do |other_post|
         other_tags = normalize_tags(other_post['tags'])
-        (other_tags - post_tags).count
+        (other_tags & post_tags).length
       end
+      sorted_posts = sorted_posts.reverse
 
       closest = sorted_posts[0..(@amount - 1)]
       html = ''
-
 
       closest.each do |related_post|
         html << "<a href=#{related_post.url}>#{related_post.data['title']}</a><br/>"
