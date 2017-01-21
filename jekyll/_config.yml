@@ -7,7 +7,7 @@ baseurl: ""
 url: "https://botleg.com"
 github_username:  botleg
 permalink: /stories/:title/
-paginate: 10
+paginate: 7
 paginate_path: "/blog/:num"
 exclude: [Gemfile, Gemfile.lock, Rakefile, assets/js, assets/sass, assets/images/blog, gulpfile.js, package.json, '*.log', node_modules]
 keep_files: [assets, .git, CNAME, .nojekyll]

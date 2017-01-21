@@ -3,49 +3,52 @@ layout: default
 type: home
 ---
 {% assign offset = paginator.page|minus:1|times:7 %}
-{% assign feat = site.posts[offset] %}
+{% assign limit = 7 %}
 
 	{% if paginator.page == 1 %}
-	<header style="{{ feat.bg }}">
-		<section class="site-header">
-			<div class="wrapper">
+		{% assign feat = site.posts[0] %}
+		{% assign offset = 1 %}
+		{% assign limit = 6 %}
 		
-				<a class="site-title" href="{{ site.baseurl }}/">{{ site.title | capitalize }}</a>
-		
-				<div id="search">
-					<a href="{{ "/feed/index.xml" | prepend: site.baseurl }}"><span class="rss-icon">
-						<svg viewBox="0 0 24 24" width="30px" height="30px">
-							<use xlink:href="/assets/images/sprites.svg#rss"></use>
-						</svg></span>
-					</a>
-					<form id="searchform">
-						<input type="text" placeholder="search" id="searchbox">
-					</form>
-				</div>
-			</div>
-		</section>
-		
-		<a class="head-link" href="{{ feat.url | prepend: site.baseurl }}">
-			<section class="post-header">
-				<div class="header-content">
-					<h5>FEATURED STORY</h5>
-					<h1 class="post-title">{{ feat.title }}</h1>
-					<p>{{ feat.summary }}</p>
+		<header style="{{ feat.bg }}">
+			<section class="site-header">
+				<div class="wrapper">
+			
+					<a class="site-title" href="{{ site.baseurl }}/">{{ site.title | capitalize }}</a>
+			
+					<div id="search">
+						<a href="{{ "/feed/index.xml" | prepend: site.baseurl }}"><span class="rss-icon">
+							<svg viewBox="0 0 24 24" width="30px" height="30px">
+								<use xlink:href="/assets/images/sprites.svg#rss"></use>
+							</svg></span>
+						</a>
+						<form id="searchform">
+							<input type="text" placeholder="search" id="searchbox">
+						</form>
+					</div>
 				</div>
 			</section>
-		</a>
-	</header>
+			
+			<a class="head-link" href="{{ feat.url | prepend: site.baseurl }}">
+				<section class="post-header">
+					<div class="header-content">
+						<h5>FEATURED STORY</h5>
+						<h1 class="post-title">{{ feat.title }}</h1>
+						<p>{{ feat.summary }}</p>
+					</div>
+				</section>
+			</a>
+		</header>
 	{% else %}
 		{% include header.html %}
 	{% endif %}
 
-	{% assign offset = offset|plus:1 %}
 	<div class="wrapper">
 		<div class="home-content">
 			<h1 class="sans-bold page-heading">LATEST STORIES</h1>
 			
 			<ul class="post-list">
-				{% for post in site.posts limit:6 offset:offset %}
+				{% for post in site.posts limit:limit offset:offset %}
 				<li>
 					<a class="post-link" href="{{ post.url | prepend: site.baseurl }}">{{ post.title }}</a>
 					<span class="post-meta">{{ post.date | date: "%b %-d, %Y" }} | 
