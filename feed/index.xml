@@ -5,9 +5,240 @@
     <description>Hi, botleg is a blog where you can find tutorials and techniques in web development, devops, databases, cloud computing and anything related to technology.</description>
     <link>https://botleg.com/</link>
     <atom:link href="https://botleg.com/feed" rel="self" type="application/rss+xml"/>
-    <pubDate>Sat, 21 Jan 2017 17:19:03 +0000</pubDate>
-    <lastBuildDate>Sat, 21 Jan 2017 17:19:03 +0000</lastBuildDate>
+    <pubDate>Wed, 01 Feb 2017 15:27:54 +0000</pubDate>
+    <lastBuildDate>Wed, 01 Feb 2017 15:27:54 +0000</lastBuildDate>
     <generator>Jekyll v3.2.1</generator>
+    
+      <item>
+        <title>Setup Gitlab for Docker based development</title>
+        <author><name>Hanzel Jesheen</name></author>
+        <description>&lt;p&gt;&lt;a href=&quot;https://about.gitlab.com/&quot;&gt;Gitlab&lt;/a&gt; is known as the open-source git repository manager. However, Gitlab does a lot more than that right now. It features a really powerful CI/CD engine and even packs a docker registry. It has become an essential part of my development process. In this article, we will discuss setting up Gitlab for docker based developments.&lt;/p&gt;
+
+&lt;p&gt;We will start by setting up a VM in the cloud and installing Gitlab there. We will configure it to support HTTPS. We will also setup &lt;a href=&quot;https://about.gitlab.com/gitlab-ci/&quot;&gt;Gitlab CI&lt;/a&gt;, the Continuous integration solution that comes with Gitlab with multiple runners to run the builds in parallel. We will also setup the docker registry to store our docker images and secure it with HTTPs. Finally we will test this setup with docker based project.&lt;/p&gt;
+
+&lt;p&gt;For the cloud VM, I’m using &lt;a href=&quot;https://www.digitalocean.com/&quot;&gt;Digital Ocean&lt;/a&gt;, but the process is similar for other vendors as well. We will use &lt;a href=&quot;https://letsencrypt.org/&quot;&gt;Let’s Encrypt&lt;/a&gt; for generating SSL certificates. To use this, you would also need a domain. The project used to test the gitlab setup is hosted &lt;a href=&quot;https://github.com/botleg/gitlab-nginx&quot;&gt;here&lt;/a&gt;. It is simple project that build a docker image with &lt;a href=&quot;https://www.nginx.com/&quot;&gt;nginx&lt;/a&gt; webserver.&lt;/p&gt;
+
+&lt;h2 id=&quot;create-the-vm&quot;&gt;Create the VM&lt;/h2&gt;
+
+&lt;p&gt;Create a VM using your cloud service, I am using Digital Ocean. You may also host Gitlab in your local system. I am choosing &lt;code class=&quot;highlighter-rouge&quot;&gt;Ubuntu 16.04 x64&lt;/code&gt; as the OS, but any linux distro will work fine. Also, since we are putting the entire setup in one VM, make it with atleast 8GB of RAM.&lt;/p&gt;
+
+&lt;p&gt;We will register this Gitlab instance with a subdomain. Example: &lt;code class=&quot;highlighter-rouge&quot;&gt;gitlab.botleg.com&lt;/code&gt;. Once you have created your created your VM, create a new &lt;code class=&quot;highlighter-rouge&quot;&gt;A&lt;/code&gt; record in your DNS provider. The name will be subdomain name, &lt;code class=&quot;highlighter-rouge&quot;&gt;gitlab&lt;/code&gt; here and provide the public IP of the VM. SSH into the VM created and create a new user. Follow &lt;a href=&quot;https://www.digitalocean.com/community/tutorials/initial-server-setup-with-ubuntu-16-04&quot;&gt;this&lt;/a&gt; tutorial to add this user and setup password-less access.&lt;/p&gt;
+
+&lt;h2 id=&quot;installing-gitlab&quot;&gt;Installing Gitlab&lt;/h2&gt;
+
+&lt;p&gt;We will be using the Community Edition of Gitlab. All the features that we need in our development process is supported in this edition. A comparison of the editions can be found &lt;a href=&quot;https://about.gitlab.com/products/#compare-options&quot;&gt;here&lt;/a&gt;. Easiest way to install Gitlab is to use the Omnibus package. It contains everything required for Gitlab in a single package with &lt;a href=&quot;https://www.chef.io/&quot;&gt;Chef&lt;/a&gt; recipes for the tasks.&lt;/p&gt;
+
+&lt;p&gt;Just follow the steps in &lt;a href=&quot;https://about.gitlab.com/downloads/#ubuntu1604&quot;&gt;this&lt;/a&gt; site to install it. You just have to install some dependencies, add the new repository and install the &lt;code class=&quot;highlighter-rouge&quot;&gt;gitlab-ce&lt;/code&gt; package. The command &lt;code class=&quot;highlighter-rouge&quot;&gt;sudo gitlab-ctl reconfigure&lt;/code&gt; triggers a chef receipe that reconfigures Gitlab based on the changes made to the configuration files.&lt;/p&gt;
+
+&lt;p&gt;Once this is done, you will able to go to the domain setup in DNS service and see Gitlab login page. You will be asked to set password for the default admin account named &lt;code class=&quot;highlighter-rouge&quot;&gt;root&lt;/code&gt;. Set the admin password and login to Gitlab. Now, I recommend that you create a new admin user and use it for the next steps. This can be done from the Admin Area.&lt;/p&gt;
+
+&lt;h2 id=&quot;enabling-https&quot;&gt;Enabling HTTPS&lt;/h2&gt;
+
+&lt;p&gt;To enable HTTPS for Gitlab, we need to have a certificate generated for this domain. We will use &lt;code class=&quot;highlighter-rouge&quot;&gt;Let's Encrypt&lt;/code&gt; for this. To know more about this, visit &lt;a href=&quot;https://letsencrypt.org/getting-started/&quot;&gt;here&lt;/a&gt;. We will start by installing &lt;code class=&quot;highlighter-rouge&quot;&gt;Let's Encrypt&lt;/code&gt; with,&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;sudo apt-get install letsencrypt&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;To create the certificate, we need to verify that we indeed own the domain. To do this, &lt;code class=&quot;highlighter-rouge&quot;&gt;letencrypt&lt;/code&gt; tool provide a plugin &lt;code class=&quot;highlighter-rouge&quot;&gt;standalone&lt;/code&gt; that creates a temporary web server and verifies the domain. So, for this to work, we need to temporarily disable gitlab. To do this, use the following commands and enter the domain name and email when prompted&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;sudo gitlab-ctl stop
+sudo letsencrypt certonly --standalone --agree-tos
+sudo gitlab-ctl start&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;The certificates generated will be in the folder &lt;code class=&quot;highlighter-rouge&quot;&gt;/etc/letsencrypt/live/&amp;lt;domain name&amp;gt;/&lt;/code&gt;. The certificate file is &lt;code class=&quot;highlighter-rouge&quot;&gt;fullchain.pem&lt;/code&gt; and the key is &lt;code class=&quot;highlighter-rouge&quot;&gt;privkey.pem&lt;/code&gt;. We need to change this is in the Gitlab configurations. This file is located at &lt;code class=&quot;highlighter-rouge&quot;&gt;/etc/gitlab/gitlab.rb&lt;/code&gt;. This file is full of comments. We will make a backup of this file and clear it,&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;sudo cp /etc/gitlab/gitlab.rb /etc/gitlab/gitlab.rb.bak
+sudo truncate -s 0 /etc/gitlab/gitlab.rb&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;We need to add the following configuration items:&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;external_url&lt;/code&gt;: The URL  where gitlab can be accessed. It will contain &lt;code class=&quot;highlighter-rouge&quot;&gt;https://&lt;/code&gt; followed by the domain name.&lt;/li&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;nginx['redirect_http_to_https']&lt;/code&gt;: We set it to &lt;code class=&quot;highlighter-rouge&quot;&gt;true&lt;/code&gt; to redirect all HTTP traffic to HTTPS.&lt;/li&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;nginx['ssl_certificate']&lt;/code&gt;: The location of the certificate file.&lt;/li&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;nginx['ssl_certificate_key']&lt;/code&gt;: The location of the certificate key.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Open the file &lt;code class=&quot;highlighter-rouge&quot;&gt;/etc/gitlab/gitlab.rb&lt;/code&gt; as root and enter the following lines.&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-ruby&quot; data-lang=&quot;ruby&quot;&gt;&lt;span class=&quot;n&quot;&gt;external_url&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;'https://&amp;lt;domain name&amp;gt;'&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;nginx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'redirect_http_to_https'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;kp&quot;&gt;true&lt;/span&gt;
+
+&lt;span class=&quot;n&quot;&gt;nginx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'ssl_certificate'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;/etc/letsencrypt/live/&amp;lt;domain name&amp;gt;/fullchain.pem&quot;&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;nginx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'ssl_certificate_key'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;/etc/letsencrypt/live/&amp;lt;domain name&amp;gt;/privkey.pem&quot;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;Replace &lt;code class=&quot;highlighter-rouge&quot;&gt;&amp;lt;domain name&amp;gt;&lt;/code&gt; with the domain name registered for Gitlab. Reconfigure Gitlab with new settings with the command,&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;sudo gitlab-ctl reconfigure&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;Now, when we go the Gitlab site, it will be in HTTPS with the &lt;code class=&quot;highlighter-rouge&quot;&gt;Let's Encrypt&lt;/code&gt; certificate.&lt;/p&gt;
+
+&lt;h2 id=&quot;gitlab-ci-runners&quot;&gt;Gitlab CI Runners&lt;/h2&gt;
+
+&lt;p&gt;In this step, we will setup the runners needed to run the builds for CI/CD. The runners will build, test and publish the projects as defined by the &lt;code class=&quot;highlighter-rouge&quot;&gt;.gitlab-ci.yml&lt;/code&gt; file. We will discuss more about this later. Since we are doing docker based projects, we will use docker images for runners and use &lt;code class=&quot;highlighter-rouge&quot;&gt;Docker inside Docker&lt;/code&gt; for running our builds.&lt;/p&gt;
+
+&lt;p&gt;The first step for this would be to actually install docker engine in this server,&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;curl -sSL https://get.docker.com/ | sh
+sudo usermod -aG docker &lt;span class=&quot;nv&quot;&gt;$USER&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;The second command is to access docker without &lt;code class=&quot;highlighter-rouge&quot;&gt;sudo&lt;/code&gt;. You might need to logout and login again to do this.Once we have the docker engine installed, we will run the &lt;a href=&quot;https://hub.docker.com/r/gitlab/gitlab-runner/&quot;&gt;Gitlab CI Multi Runner&lt;/a&gt; image. We will set the image to always restart if it goes down. With this implementation, we will share the docker engine in the server with the runner. For this, we will create a volume at the location, &lt;code class=&quot;highlighter-rouge&quot;&gt;/var/run/docker.sock&lt;/code&gt;. To do all this, use the following command,&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;docker run -d --name runner1 --restart always -v /var/run/docker.sock:/var/run/docker.sock gitlab/gitlab-runner:latest&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;Here, &lt;code class=&quot;highlighter-rouge&quot;&gt;runner1&lt;/code&gt; is the name of this runner. You can run multiple runners to run the builds in parallel. To run more runners, run the previous command by changing the name &lt;code class=&quot;highlighter-rouge&quot;&gt;runner1&lt;/code&gt; to something else. Example: &lt;code class=&quot;highlighter-rouge&quot;&gt;docker run -d --name runner2 --restart always -v /var/run/docker.sock:/var/run/docker.sock gitlab/gitlab-runner:latest&lt;/code&gt;, and so on.&lt;/p&gt;
+
+&lt;p&gt;To register these runners to Gitlab service, you need to have the registration token. You can find it in the &lt;code class=&quot;highlighter-rouge&quot;&gt;Runners&lt;/code&gt; section of the Admin Area. Once you find this, run the following command,&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;docker &lt;span class=&quot;nb&quot;&gt;exec&lt;/span&gt; -it runner1 gitlab-runner register&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;This command will ask the following things:&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;gitlab-ci coordinator URL&lt;/code&gt;: It is the domain name of the gitlab service with &lt;code class=&quot;highlighter-rouge&quot;&gt;https://&lt;/code&gt;, Example: &lt;code class=&quot;highlighter-rouge&quot;&gt;https://gitlab.botleg.com&lt;/code&gt;.&lt;/li&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;gitlab-ci token&lt;/code&gt;: Enter the registration token that we got from Gitlab site.&lt;/li&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;description&lt;/code&gt;: Give a name from this runner. Example: &lt;code class=&quot;highlighter-rouge&quot;&gt;runner1&lt;/code&gt;.&lt;/li&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;tags&lt;/code&gt;: Give some tags to target this runner. Gitlab provide the option to run the tests on runner with certain tags.&lt;/li&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;run untagged builds&lt;/code&gt;: Boolean value that tell whether this runner can accept jobs without tags. Since we have only one type of runners here, we can provide &lt;code class=&quot;highlighter-rouge&quot;&gt;true&lt;/code&gt; for this.&lt;/li&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;executor&lt;/code&gt;: How the jobs are executed by the runner. Here, we choose &lt;code class=&quot;highlighter-rouge&quot;&gt;docker&lt;/code&gt;. To more about the other executors, check &lt;a href=&quot;https://gitlab.com/gitlab-org/gitlab-ci-multi-runner/blob/master/docs/executors/README.md&quot;&gt;here&lt;/a&gt;.&lt;/li&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;default Docker image&lt;/code&gt;: The docker image to run the tests in. We will user &lt;code class=&quot;highlighter-rouge&quot;&gt;docker:git&lt;/code&gt; for this. This image allows for &lt;code class=&quot;highlighter-rouge&quot;&gt;docker in docker&lt;/code&gt; and also has git inbuilt.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Repeat this command for all your runners by changing the runner name. Example: &lt;code class=&quot;highlighter-rouge&quot;&gt;docker exec -it runner2 gitlab-runner register&lt;/code&gt;. After you do this, you will be able to see these runners in the &lt;code class=&quot;highlighter-rouge&quot;&gt;Runners&lt;/code&gt; section of Gitlab’s Admin Area.&lt;/p&gt;
+
+&lt;p&gt;There is however one more step we need to do. We are sharing the docker engine in the server to the runners. These runners will create &lt;code class=&quot;highlighter-rouge&quot;&gt;docker:git&lt;/code&gt; image to run the jobs. These jobs build and push docker images. We will use the docker engine from the server to do this. So, we need to make a docker volume of &lt;code class=&quot;highlighter-rouge&quot;&gt;/var/run/docker.sock&lt;/code&gt; for the &lt;code class=&quot;highlighter-rouge&quot;&gt;docker:git&lt;/code&gt; images created by the runners to share the docker engine. To do this, we need to modify the configuration of each runner. Run the following command to open up the configuration file of the runner.&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;docker &lt;span class=&quot;nb&quot;&gt;exec&lt;/span&gt; -it runner1 nano /etc/gitlab-runner/config.toml&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;Edit the line &lt;code class=&quot;highlighter-rouge&quot;&gt;volumes = [&quot;/cache&quot;]&lt;/code&gt; to &lt;code class=&quot;highlighter-rouge&quot;&gt;volumes = [&quot;/cache&quot;, &quot;/var/run/docker.sock:/var/run/docker.sock&quot;]&lt;/code&gt;. The file will look something like this:&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-toml&quot; data-lang=&quot;toml&quot;&gt;&lt;span class=&quot;py&quot;&gt;concurrent&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;
+&lt;span class=&quot;py&quot;&gt;check_interval&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;
+
+&lt;span class=&quot;nn&quot;&gt;[[runners]]&lt;/span&gt;
+  &lt;span class=&quot;py&quot;&gt;name&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&quot;runner1&quot;&lt;/span&gt;
+  &lt;span class=&quot;py&quot;&gt;url&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&quot;https://gitlab.botleg.com&quot;&lt;/span&gt;
+  &lt;span class=&quot;py&quot;&gt;token&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&quot;9ab32be14c9d2cb67fbec7aa59304f&quot;&lt;/span&gt;
+  &lt;span class=&quot;py&quot;&gt;executor&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&quot;docker&quot;&lt;/span&gt;
+  &lt;span class=&quot;nn&quot;&gt;[runners.docker]&lt;/span&gt;
+    &lt;span class=&quot;py&quot;&gt;tls_verify&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;kc&quot;&gt;false&lt;/span&gt;
+    &lt;span class=&quot;py&quot;&gt;image&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&quot;docker:git&quot;&lt;/span&gt;
+    &lt;span class=&quot;py&quot;&gt;privileged&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;kc&quot;&gt;false&lt;/span&gt;
+    &lt;span class=&quot;py&quot;&gt;disable_cache&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;kc&quot;&gt;false&lt;/span&gt;
+    &lt;span class=&quot;py&quot;&gt;volumes&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;/cache&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&quot;/var/run/docker.sock:/var/run/docker.sock&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;
+  &lt;span class=&quot;nn&quot;&gt;[runners.cache]&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;Repeat this step for other runners as well.&lt;/p&gt;
+
+&lt;h2 id=&quot;container-registry&quot;&gt;Container Registry&lt;/h2&gt;
+
+&lt;p&gt;The final thing we need to setup is the &lt;a href=&quot;https://docs.gitlab.com/ce/user/project/container_registry.html&quot;&gt;Container Registry&lt;/a&gt;. We will create a new sub-domain for registry, like &lt;code class=&quot;highlighter-rouge&quot;&gt;registry.botleg.com&lt;/code&gt; and secure it using HTTPS. So, first thing would be to create a new &lt;code class=&quot;highlighter-rouge&quot;&gt;A&lt;/code&gt; record with the DNS service. In this case, the name will be &lt;code class=&quot;highlighter-rouge&quot;&gt;registry&lt;/code&gt; and give the public IP of the VM. Now, our server has &lt;code class=&quot;highlighter-rouge&quot;&gt;nginx&lt;/code&gt; webserver. If the request is for &lt;code class=&quot;highlighter-rouge&quot;&gt;gitlab&lt;/code&gt; subdomain, it will redirect to gitlab and if the request is for &lt;code class=&quot;highlighter-rouge&quot;&gt;registry&lt;/code&gt;, it will redirect to registry.&lt;/p&gt;
+
+&lt;p&gt;We also need to create new SSL certificate for this &lt;code class=&quot;highlighter-rouge&quot;&gt;registry&lt;/code&gt; sub-domain. As before, we use Let’s Encrypt for this.&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;sudo gitlab-ctl stop
+sudo letsencrypt certonly --standalone --agree-tos
+sudo gitlab-ctl start&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;Provide the domain for the registry when prompted. This will create the new SSL certificates, which can be found in the &lt;code class=&quot;highlighter-rouge&quot;&gt;/etc/letsencrypt/live&lt;/code&gt; folder. Update the gitlab configuration file &lt;code class=&quot;highlighter-rouge&quot;&gt;/etc/gitlab/gitlab.rb&lt;/code&gt; to add the following lines.&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-ruby&quot; data-lang=&quot;ruby&quot;&gt;&lt;span class=&quot;n&quot;&gt;registry_external_url&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;'https://&amp;lt;domain name&amp;gt;'&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;registry_nginx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'ssl_certificate'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;/etc/letsencrypt/live/&amp;lt;domain name&amp;gt;/fullchain.pem&quot;&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;registry_nginx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'ssl_certificate_key'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;/etc/letsencrypt/live/&amp;lt;domain name&amp;gt;/privkey.pem&quot;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;Replace &lt;code class=&quot;highlighter-rouge&quot;&gt;&amp;lt;domain name&amp;gt;&lt;/code&gt; with the domain registered for the registry. This will enable registry with HTTPS enabled. To update the changes, use the &lt;code class=&quot;highlighter-rouge&quot;&gt;sudo gitlab-ctl reconfigure&lt;/code&gt; command. In the Admin area you can see that the Container Registry is enabled. To test this out, try logging into the registry.&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-ruby&quot; data-lang=&quot;ruby&quot;&gt;&lt;span class=&quot;n&quot;&gt;docker&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;login&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;registry&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;domain&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;Replace &lt;code class=&quot;highlighter-rouge&quot;&gt;&amp;lt;registry domain&amp;gt;&lt;/code&gt; with the domain registered for the registry and provide the Gitlab username and password. You can see the &lt;code class=&quot;highlighter-rouge&quot;&gt;Login Succeeded&lt;/code&gt; message.&lt;/p&gt;
+
+&lt;h2 id=&quot;testing-setup&quot;&gt;Testing Setup&lt;/h2&gt;
+
+&lt;p&gt;We have now setup the Gitlab for the docker based development. To test this implementation, we will push a git repository to Gitlab and see the working of Gitlab CI and Container Registry. I have made a simple docker based project which can be found &lt;a href=&quot;https://github.com/botleg/gitlab-nginx&quot;&gt;here&lt;/a&gt;. This just contains a &lt;code class=&quot;highlighter-rouge&quot;&gt;Dockerfile&lt;/code&gt; that installs &lt;code class=&quot;highlighter-rouge&quot;&gt;nginx&lt;/code&gt; websever, which serves the &lt;code class=&quot;highlighter-rouge&quot;&gt;index.html&lt;/code&gt; file.&lt;/p&gt;
+
+&lt;p&gt;The file that we are interested about is &lt;code class=&quot;highlighter-rouge&quot;&gt;.gitlab-ci.yml&lt;/code&gt;. This contains all the information on how to build and deploy this project. To know more about this file, check &lt;a href=&quot;https://docs.gitlab.com/ce/ci/yaml/&quot;&gt;here&lt;/a&gt;. The file for this project looks like this.&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-ruby&quot; data-lang=&quot;ruby&quot;&gt;&lt;span class=&quot;ss&quot;&gt;image: &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;docker&lt;/span&gt;&lt;span class=&quot;ss&quot;&gt;:git&lt;/span&gt;
+
+&lt;span class=&quot;ss&quot;&gt;stages:
+&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;build&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;publish&lt;/span&gt;
+
+&lt;span class=&quot;ss&quot;&gt;build:
+  stage: &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;build&lt;/span&gt;
+  &lt;span class=&quot;ss&quot;&gt;script:
+    &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;docker&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;build&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;t&lt;/span&gt; &lt;span class=&quot;vg&quot;&gt;$REGISTRY_HOST&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;/&lt;/span&gt;&lt;span class=&quot;vg&quot;&gt;$IMAGE_NAME&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;
+
+&lt;span class=&quot;nf&quot;&gt;registry&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;
+  &lt;span class=&quot;ss&quot;&gt;stage: &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;publish&lt;/span&gt;
+  &lt;span class=&quot;ss&quot;&gt;script:
+    &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;docker&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;login&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;u&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;gitlab&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ci&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;token&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;p&lt;/span&gt; &lt;span class=&quot;vg&quot;&gt;$CI_BUILD_TOKEN&lt;/span&gt; &lt;span class=&quot;vg&quot;&gt;$REGISTRY_HOST&lt;/span&gt;
+    &lt;span class=&quot;o&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;docker&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;push&lt;/span&gt; &lt;span class=&quot;vg&quot;&gt;$REGISTRY_HOST&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;/&lt;/span&gt;&lt;span class=&quot;vg&quot;&gt;$IMAGE_NAME&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;Since the job is docker based, we will specify the image to run this test on. The image, &lt;code class=&quot;highlighter-rouge&quot;&gt;docker:git&lt;/code&gt; contains &lt;code class=&quot;highlighter-rouge&quot;&gt;docker&lt;/code&gt; and &lt;code class=&quot;highlighter-rouge&quot;&gt;git&lt;/code&gt; inside. We can split the entire process into multiple stages and each stage contains multiple jobs. Each job is a stage will be done in parallel and each stage will be triggered only if all jobs in the previous stage is successful.&lt;/p&gt;
+
+&lt;p&gt;Here, we have two stages, &lt;code class=&quot;highlighter-rouge&quot;&gt;build&lt;/code&gt; and &lt;code class=&quot;highlighter-rouge&quot;&gt;publish&lt;/code&gt;. The job &lt;code class=&quot;highlighter-rouge&quot;&gt;build&lt;/code&gt; is in the &lt;code class=&quot;highlighter-rouge&quot;&gt;build&lt;/code&gt; stage and job &lt;code class=&quot;highlighter-rouge&quot;&gt;registry&lt;/code&gt; in the &lt;code class=&quot;highlighter-rouge&quot;&gt;publish&lt;/code&gt; stage. So, &lt;code class=&quot;highlighter-rouge&quot;&gt;registry&lt;/code&gt; job will be done only if the &lt;code class=&quot;highlighter-rouge&quot;&gt;build&lt;/code&gt; job is successful. The &lt;code class=&quot;highlighter-rouge&quot;&gt;build&lt;/code&gt; job contains a bash command to build the docker image. We can use variables in this script by prepending it with &lt;code class=&quot;highlighter-rouge&quot;&gt;$&lt;/code&gt;. The values for this variables can be given from the Gitlab UI. The image name will be &lt;code class=&quot;highlighter-rouge&quot;&gt;$REGISTRY_HOST/$IMAGE_NAME&lt;/code&gt;. Here, &lt;code class=&quot;highlighter-rouge&quot;&gt;$REGISTRY_HOST&lt;/code&gt; is the registry domain name and &lt;code class=&quot;highlighter-rouge&quot;&gt;$IMAGE_NAME&lt;/code&gt; will be the repository name.&lt;/p&gt;
+
+&lt;p&gt;In the &lt;code class=&quot;highlighter-rouge&quot;&gt;registry&lt;/code&gt; job, we push this image to the container registry. To do this, we have to login to the registry. Gitlab has a temporary user named &lt;code class=&quot;highlighter-rouge&quot;&gt;gitlab-ci-token&lt;/code&gt; with password in the variable &lt;code class=&quot;highlighter-rouge&quot;&gt;$CI_BUILD_TOKEN&lt;/code&gt; for this purpose. Once with login to the registry at &lt;code class=&quot;highlighter-rouge&quot;&gt;$REGISTRY_HOST&lt;/code&gt;, we can push the docker image.&lt;/p&gt;
+
+&lt;p&gt;To test this out, create a new public project in Gitlab by importing from Github. In the settings, choose &lt;code class=&quot;highlighter-rouge&quot;&gt;Variables&lt;/code&gt; and add the following two variables.&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;REGISTRY_HOST&lt;/code&gt;: The domain registered for container registry. Example: &lt;code class=&quot;highlighter-rouge&quot;&gt;registry.botleg.com&lt;/code&gt;.&lt;/li&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;IMAGE_NAME&lt;/code&gt;: The repository name for the project. Example: &lt;code class=&quot;highlighter-rouge&quot;&gt;botleg/gitlab-nginx&lt;/code&gt;.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Once the repository is imported, goto the &lt;code class=&quot;highlighter-rouge&quot;&gt;Pipelines&lt;/code&gt; tab and click the &lt;code class=&quot;highlighter-rouge&quot;&gt;Run Pipeline&lt;/code&gt; button to trigger the build. You can see the jobs running and image being pushed to the registry. Once the build pipeline is complete, you can see the docker image in the &lt;code class=&quot;highlighter-rouge&quot;&gt;Registry&lt;/code&gt; section of the project.&lt;/p&gt;
+
+&lt;h2 id=&quot;certificate-renewal&quot;&gt;Certificate Renewal&lt;/h2&gt;
+
+&lt;p&gt;The certificates generated by Let’s Encrypt will get expired in 90 days. So, we have to automate the renewal of these certificates. Let’s Encrypt provide a command &lt;code class=&quot;highlighter-rouge&quot;&gt;letsencrypt renew&lt;/code&gt; to do just this. This command will check if the certificates are about to be expired and do the renewal for those. For the renewal to happen, we need to stop the Gitlab service temporarily.&lt;/p&gt;
+
+&lt;p&gt;The following commands will do the renewal of the certificates,&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;gitlab-ctl stop
+letsencrypt renew
+gitlab-ctl start
+gitlab-ctl reconfigure&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;We need to add this as a cron job for the &lt;code class=&quot;highlighter-rouge&quot;&gt;root&lt;/code&gt; user. Open the crontab for &lt;code class=&quot;highlighter-rouge&quot;&gt;root&lt;/code&gt; user with the command &lt;code class=&quot;highlighter-rouge&quot;&gt;sudo crontab -e&lt;/code&gt; and paste the following line.&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-cron&quot; data-lang=&quot;cron&quot;&gt;0 7 1 * * (gitlab-ctl stop &amp;amp;&amp;amp; letsencrypt renew &amp;amp;&amp;amp; gitlab-ctl start &amp;amp;&amp;amp; gitlab-ctl reconfigure) &amp;gt;&amp;gt; /var/log/report.log 2&amp;gt;&amp;amp;1&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;This will cause this task to run at 7am on the 1st of every month and log the output to the file &lt;code class=&quot;highlighter-rouge&quot;&gt;/var/log/report.log&lt;/code&gt;. Now, we have completely setup Gitlab for the docker based development and also tested it with a git repo.&lt;/p&gt;
+
+</description>
+        <pubDate>Tue, 31 Jan 2017 18:00:00 +0000</pubDate>
+        <link>https://botleg.com/stories/setup-gitlab-for-docker-based-development/</link>
+        <guid isPermaLink="true">https://botleg.com/stories/setup-gitlab-for-docker-based-development/</guid>
+        
+        <category>gitlab</category>
+        
+        <category>docker</category>
+        
+        <category>nginx</category>
+        
+        <category>digitalocean</category>
+        
+        <category>bash</category>
+        
+        <category>Dockerfile</category>
+        
+        <category>CI</category>
+        
+        <category>letsencrypt</category>
+        
+        <category>https</category>
+        
+        <category>ssl</category>
+        
+        <category>registry</category>
+        
+        <category>runner</category>
+        
+        
+        <category>cloud</category>
+        
+      </item>
     
       <item>
         <title>Auto Scaling with Docker</title>
@@ -2118,110 +2349,6 @@ WORKDIR /&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;app&lt;/span&gt;
         
         
         <category>misc</category>
-        
-      </item>
-    
-      <item>
-        <title>Generators in JavaScript and Python</title>
-        <author><name>Hanzel Jesheen</name></author>
-        <description>&lt;p&gt;With the introduction of JavaScript ES6 or ES2015, we got a whole lot of new features for the language. Among those, &lt;code class=&quot;highlighter-rouge&quot;&gt;generator&lt;/code&gt; sure is an interesting one. Generator is basically a function which can be paused and resumed as we need it. The state of the generator stays constant while it’s paused. You can read more about this &lt;a href=&quot;https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Iterators_and_Generators#Generators&quot;&gt;here&lt;/a&gt;. In this article, we are going to compare generators in JavaScript to the ones in a language that has been supporting it for a long time now, Python.&lt;/p&gt;
-
-&lt;p&gt;We will see how to create an &lt;code class=&quot;highlighter-rouge&quot;&gt;iterator&lt;/code&gt; with generator function. Iterator contains a set of values in a sequence. We can go through the elements in an iterator with a &lt;code class=&quot;highlighter-rouge&quot;&gt;for&lt;/code&gt; loop. For this example, we will create an iterator for &lt;code class=&quot;highlighter-rouge&quot;&gt;Fibonacci Numbers&lt;/code&gt;.&lt;/p&gt;
-
-&lt;h2 id=&quot;generator&quot;&gt;Generator&lt;/h2&gt;
-&lt;p&gt;Generator is just another function. The only difference is that it can be paused and resumed. While the normal functions use &lt;code class=&quot;highlighter-rouge&quot;&gt;return&lt;/code&gt; to give back a value and stop its execution, a generator function uses &lt;code class=&quot;highlighter-rouge&quot;&gt;yield&lt;/code&gt; to give a value back and pause the function. We can resume the function with the &lt;code class=&quot;highlighter-rouge&quot;&gt;next()&lt;/code&gt; command and the function will give back the value in the next yield. We can also go through the values in a generator with a loop. The generator functions can also have a &lt;code class=&quot;highlighter-rouge&quot;&gt;return&lt;/code&gt; statement which can be used to terminate its execution.&lt;/p&gt;
-
-&lt;h2 id=&quot;javascript&quot;&gt;JavaScript&lt;/h2&gt;
-&lt;p&gt;In JavaScript, a generator definition contains an &lt;code class=&quot;highlighter-rouge&quot;&gt;*&lt;/code&gt;. It could also have a yield statement.&lt;/p&gt;
-
-&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-javascript&quot; data-lang=&quot;javascript&quot;&gt;&lt;span class=&quot;kd&quot;&gt;function&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;*&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;getFibonacci&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
-  &lt;span class=&quot;c1&quot;&gt;//yield something;&lt;/span&gt;
-&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
-
-&lt;p&gt;In the &lt;a href=&quot;https://en.wikipedia.org/wiki/Fibonacci_number&quot;&gt;Fibonacci series&lt;/a&gt;, the first two numbers are 0 and 1 and the rest is the sum of previous two values. So, it goes like &lt;code class=&quot;highlighter-rouge&quot;&gt;0, 1, 1, 2, 3, 5, 8, 13, 21, ...&lt;/code&gt;. The code for getting Fibonacci Numbers less than 100 is this.&lt;/p&gt;
-
-&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-javascript&quot; data-lang=&quot;javascript&quot;&gt;&lt;span class=&quot;kd&quot;&gt;function&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;*&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;getFibonacci&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
-  &lt;span class=&quot;k&quot;&gt;yield&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;a&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
-  &lt;span class=&quot;nx&quot;&gt;b&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
-  
-  &lt;span class=&quot;k&quot;&gt;while&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kc&quot;&gt;true&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
-    &lt;span class=&quot;k&quot;&gt;yield&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;b&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
-    &lt;span class=&quot;nx&quot;&gt;b&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;a&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;b&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
-    &lt;span class=&quot;nx&quot;&gt;a&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;b&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;a&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
-  &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
-&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
-
-&lt;span class=&quot;k&quot;&gt;for&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;num&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;of&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;getFibonacci&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;())&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
-  &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;num&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;100&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
-    &lt;span class=&quot;k&quot;&gt;break&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
-  &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
-  &lt;span class=&quot;nx&quot;&gt;console&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;log&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;num&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
-&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
-
-&lt;p&gt;Note that ES6 is required for running this code. We first define the generator function &lt;code class=&quot;highlighter-rouge&quot;&gt;getFibonacci()&lt;/code&gt; with the &lt;code class=&quot;highlighter-rouge&quot;&gt;*&lt;/code&gt;. The first value in the sequence is &lt;code class=&quot;highlighter-rouge&quot;&gt;0&lt;/code&gt;, so we have to return that with an yield. We can use an expression with yield statement and the result of the expression is send out with yield. Now we store the previous two values in &lt;code class=&quot;highlighter-rouge&quot;&gt;a&lt;/code&gt; and &lt;code class=&quot;highlighter-rouge&quot;&gt;b&lt;/code&gt;. The starting values of &lt;code class=&quot;highlighter-rouge&quot;&gt;a&lt;/code&gt; and &lt;code class=&quot;highlighter-rouge&quot;&gt;b&lt;/code&gt; are &lt;code class=&quot;highlighter-rouge&quot;&gt;0&lt;/code&gt; and &lt;code class=&quot;highlighter-rouge&quot;&gt;1&lt;/code&gt; respectively, the first two values in the sequence. We can assign value to &lt;code class=&quot;highlighter-rouge&quot;&gt;a&lt;/code&gt; and yield it in a single statement.&lt;/p&gt;
-
-&lt;p&gt;We start an infinite &lt;code class=&quot;highlighter-rouge&quot;&gt;while&lt;/code&gt; loop. We now yield the value in &lt;code class=&quot;highlighter-rouge&quot;&gt;b&lt;/code&gt;, which is now the second number in the sequence. Now we set &lt;code class=&quot;highlighter-rouge&quot;&gt;b&lt;/code&gt; to the sum of &lt;code class=&quot;highlighter-rouge&quot;&gt;a&lt;/code&gt; and &lt;code class=&quot;highlighter-rouge&quot;&gt;b&lt;/code&gt; and set &lt;code class=&quot;highlighter-rouge&quot;&gt;a&lt;/code&gt; as the previous value of &lt;code class=&quot;highlighter-rouge&quot;&gt;b&lt;/code&gt;. This can be done simply by,&lt;/p&gt;
-
-&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-javascript&quot; data-lang=&quot;javascript&quot;&gt;&lt;span class=&quot;nx&quot;&gt;b&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;a&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;b&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
-&lt;span class=&quot;nx&quot;&gt;a&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;b&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;a&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
-
-&lt;p&gt;Now, &lt;code class=&quot;highlighter-rouge&quot;&gt;b&lt;/code&gt; will contain the third number in the sequence, which is then given out with yield. This goes on and on with &lt;code class=&quot;highlighter-rouge&quot;&gt;b&lt;/code&gt; always having the next number in the sequence.&lt;/p&gt;
-
-&lt;p&gt;This generator acts as an iterator factory for Fibonacci Numbers. We can loop through this iterator with the &lt;code class=&quot;highlighter-rouge&quot;&gt;for .. of&lt;/code&gt; loop. As this gives all the Fibonacci Numbers till infinity, we need a &lt;code class=&quot;highlighter-rouge&quot;&gt;break&lt;/code&gt; condition. Here, we take the Fibonacci Numbers less than 100 and logs it.&lt;/p&gt;
-
-&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-javascript&quot; data-lang=&quot;javascript&quot;&gt;&lt;span class=&quot;k&quot;&gt;for&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;num&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;of&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;getFibonacci&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;())&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
-  &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;num&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;100&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
-    &lt;span class=&quot;k&quot;&gt;break&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
-  &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
-  &lt;span class=&quot;nx&quot;&gt;console&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;log&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;num&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
-&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
-
-&lt;h2 id=&quot;python&quot;&gt;Python&lt;/h2&gt;
-&lt;p&gt;The python implementation of this same problem is very similar. The code for the solution is this.&lt;/p&gt;
-
-&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-python&quot; data-lang=&quot;python&quot;&gt;&lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;getFibonacci&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;():&lt;/span&gt;
-  &lt;span class=&quot;k&quot;&gt;yield&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;
-  &lt;span class=&quot;n&quot;&gt;a&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;b&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;
-
-  &lt;span class=&quot;k&quot;&gt;while&lt;/span&gt; &lt;span class=&quot;bp&quot;&gt;True&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;
-    &lt;span class=&quot;k&quot;&gt;yield&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;b&lt;/span&gt;
-    &lt;span class=&quot;n&quot;&gt;b&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;a&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;b&lt;/span&gt;
-    &lt;span class=&quot;n&quot;&gt;a&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;b&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;a&lt;/span&gt;
-
-&lt;span class=&quot;k&quot;&gt;for&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;num&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;in&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;getFibonacci&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;():&lt;/span&gt;
-  &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;num&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;100&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;
-    &lt;span class=&quot;k&quot;&gt;break&lt;/span&gt;
-  &lt;span class=&quot;k&quot;&gt;print&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;num&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
-
-&lt;p&gt;We start with the &lt;code class=&quot;highlighter-rouge&quot;&gt;getFibonacci()&lt;/code&gt; generator function. In python, there is no difference between generators and normal function definition. The only difference is in the appearence of the &lt;code class=&quot;highlighter-rouge&quot;&gt;yield&lt;/code&gt; keyword. We can’t use expressions with yield in Python, as we have done in JavaScript. So, we will yield the first number in the sequence &lt;code class=&quot;highlighter-rouge&quot;&gt;0&lt;/code&gt; and then assign the initial values to &lt;code class=&quot;highlighter-rouge&quot;&gt;a&lt;/code&gt; and &lt;code class=&quot;highlighter-rouge&quot;&gt;b&lt;/code&gt;.&lt;/p&gt;
-
-&lt;p&gt;As before, we than have an infinite loop which yields the next value in the sequence and calculates new values of &lt;code class=&quot;highlighter-rouge&quot;&gt;a&lt;/code&gt; and &lt;code class=&quot;highlighter-rouge&quot;&gt;b&lt;/code&gt;. This is same as in JavaScript.&lt;/p&gt;
-
-&lt;p&gt;To loop through the numbers in the &lt;code class=&quot;highlighter-rouge&quot;&gt;getFibonacci()&lt;/code&gt; iterator, we can use &lt;code class=&quot;highlighter-rouge&quot;&gt;for .. in&lt;/code&gt; loop. The rest is same as in the case of JavaScript.&lt;/p&gt;
-
-&lt;h2 id=&quot;conclusion&quot;&gt;Conclusion&lt;/h2&gt;
-&lt;p&gt;Except for some subtle differences, the implementation of generators in JavaScript and Python are really similar. With ES6, we can program in JavaScript as we do it in Java, C, or Python.&lt;/p&gt;
-</description>
-        <pubDate>Sun, 04 Oct 2015 23:00:00 +0000</pubDate>
-        <link>https://botleg.com/stories/generators-in-javascript-and-python/</link>
-        <guid isPermaLink="true">https://botleg.com/stories/generators-in-javascript-and-python/</guid>
-        
-        <category>python</category>
-        
-        <category>generator</category>
-        
-        <category>iterator</category>
-        
-        <category>es6</category>
-        
-        <category>es2015</category>
-        
-        <category>fibonacci</category>
-        
-        <category>yield</category>
-        
-        
-        <category>javascript</category>
         
       </item>
     
