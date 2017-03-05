@@ -1,16 +1,15 @@
 <head>
-	<title>{% if page.title %}{{ page.title }}{% else %}{{ site.title }}{% endif %}</title>
 
+	<title>{% unless page.type %}{{ page.title }} - {% endunless %}{{ site.title }}</title>
+	
 	<meta charset="utf-8">
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<meta name="description" content="{% if page.excerpt %}{{ page.excerpt | strip_html | strip_newlines | truncate: 160 }}{% else %}{{ site.description }}{% endif %}">
 	<meta name="author" content="{{ site.author }}">
 
-	{% if page.type == 'home' %}
-		<meta property="fb:admins" content="1138381916" />
-	{% elsif page.type == 'post' %}
-		<meta name="twitter:card" content="summary" />
+	{% unless page.type == 'post' %}
+		<meta name="twitter:card" content="{{ page.summary }}" />
 		<meta name="twitter:site" content="@HanzelJesheen" />
 		<meta name="twitter:creator" content="@HanzelJesheen" />
 		<meta property="og:url" content="{{ page.url | replace:'index.html','' | prepend: site.baseurl | prepend: site.url }}" />
@@ -20,7 +19,7 @@
 		<meta property="og:image" content="{{ page.image }}" />
 		<meta property="og:site_name" content="botleg" />
 		<meta property="article:author" content="{{ site.author }}" />
-	{% endif %}
+	{% endunless %}
 
 	<meta itemprop="name" content="{% if page.title %}{{ page.title }}{% else %}{{ site.title }}{% endif %}">
 	<meta itemprop="description" content="{% if page.excerpt %}{{ page.excerpt | strip_html | strip_newlines | truncate: 160 }}{% else %}{{ site.description }}{% endif %}">

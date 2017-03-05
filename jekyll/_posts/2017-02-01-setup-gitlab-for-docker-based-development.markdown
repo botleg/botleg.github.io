@@ -6,7 +6,7 @@ categories: cloud
 gh: https://github.com/botleg/gitlab-nginx
 bg: "background:rgb(28, 120, 185);background-image:linear-gradient(160deg, rgb(28, 120, 185), rgb(104, 104, 176));background-image:-moz-linear-gradient(160deg, rgb(28, 120, 185), rgb(104, 104, 176));background-image:-webkit-linear-gradient(160deg, rgb(28, 120, 185), rgb(104, 104, 176));background-image:-o-linear-gradient(160deg, rgb(28, 120, 185), rgb(104, 104, 176));background-image:-ms-linear-gradient(160deg, rgb(28, 120, 185), rgb(104, 104, 176));
 "
-date: 2017-01-31 18:00:00
+date: 2017-02-01 18:00:00
 tags: gitlab docker nginx digitalocean bash Dockerfile CI letsencrypt https ssl registry runner
 ---
 [Gitlab](https://about.gitlab.com/) is known as the open-source git repository manager. However, Gitlab does a lot more than that right now. It features a really powerful CI/CD engine and even packs a docker registry. It has become an essential part of my development process. In this article, we will discuss setting up Gitlab for docker based developments.
@@ -241,13 +241,3 @@ We need to add this as a cron job for the `root` user. Open the crontab for `roo
 {% endhighlight %}
 
 This will cause this task to run at 7am on the 1st of every month and log the output to the file `/var/log/report.log`. Now, we have completely setup Gitlab for the docker based development and also tested it with a git repo.
-
-
-
-
-
-
-
-
-
-
