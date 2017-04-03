@@ -5,9 +5,265 @@
     <description>Hi, botleg is a blog where you can find tutorials and techniques in web development, devops, databases, cloud computing and anything related to technology.</description>
     <link>https://botleg.com/</link>
     <atom:link href="https://botleg.com/feed" rel="self" type="application/rss+xml"/>
-    <pubDate>Sun, 05 Mar 2017 15:48:49 +0000</pubDate>
-    <lastBuildDate>Sun, 05 Mar 2017 15:48:49 +0000</lastBuildDate>
+    <pubDate>Mon, 03 Apr 2017 15:38:49 +0000</pubDate>
+    <lastBuildDate>Mon, 03 Apr 2017 15:38:49 +0000</lastBuildDate>
     <generator>Jekyll v3.2.1</generator>
+    
+      <item>
+        <title>Monitoring Docker Swarm with cAdvisor, InfluxDB and Grafana</title>
+        <author><name>Hanzel Jesheen</name></author>
+        <description>&lt;p&gt;Monitoring is essential to know the state of our running applications. When you are running your applications in a scalable environment like Docker Swarm, you need a scalable monitoring solution as well. In this article, we will setup just that.&lt;/p&gt;
+
+&lt;p&gt;We will install &lt;a href=&quot;https://github.com/google/cadvisor&quot;&gt;cAdvisor&lt;/a&gt; agents in each nodes to collect host and container metrics. We will save these time-series metrics in &lt;a href=&quot;https://github.com/influxdata/influxdb&quot;&gt;InfluxDB&lt;/a&gt;. We will use &lt;a href=&quot;https://github.com/grafana/grafana&quot;&gt;Grafana&lt;/a&gt; to setup dashboards for this metrics. All these tools are open-source and can be deployed as a container.&lt;/p&gt;
+
+&lt;p&gt;We will use the Docker Swarm Mode to build the cluster and deploy these services as a stack. This allows for a dynamic setup for monitoring. Once we deploy this stack in a swarm, any new nodes joining the swarm will be automatically monitored. All the files used for this project can be found &lt;a href=&quot;https://github.com/botleg/swarm-monitoring&quot;&gt;here&lt;/a&gt;.&lt;/p&gt;
+
+&lt;h2 id=&quot;tools-overview&quot;&gt;Tools Overview&lt;/h2&gt;
+
+&lt;p&gt;There are plenty of options for monitoring solutions. We are using open-source and container friendly services to build our stack. Our stack comprises of the following services.&lt;/p&gt;
+
+&lt;h1 id=&quot;cadvisor&quot;&gt;cAdvisor&lt;/h1&gt;
+
+&lt;p&gt;&lt;a href=&quot;https://github.com/google/cadvisor&quot;&gt;cAdvisor&lt;/a&gt; collects the metric from the host and docker containers. It is deployed as a docker image with shared volumes to docker socket and root file system of the host. cAdvisor pushed these metrics to a bunch of time-series database including InfluxDB, Prometheus, etc. It even has a web UI that shows graphs of the metrics collected.&lt;/p&gt;
+
+&lt;h1 id=&quot;influxdb&quot;&gt;InfluxDB&lt;/h1&gt;
+&lt;blockquote&gt;
+  &lt;p&gt;Scalable datastore for metrics, events, and real-time analytics&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;&lt;a href=&quot;https://github.com/influxdata/influxdb&quot;&gt;InfluxDB&lt;/a&gt; is open source time series database. You can save numeric value metrics with tags. It supports a SQL like query language to query for data. The tags let us filter data for a specific host and even a spefic container.&lt;/p&gt;
+
+&lt;h1 id=&quot;grafana&quot;&gt;Grafana&lt;/h1&gt;
+&lt;blockquote&gt;
+  &lt;p&gt;Grafana is an open source, feature rich metrics dashboard and graph editor for Graphite, Elasticsearch, OpenTSDB, Prometheus and InfluxDB.&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;&lt;a href=&quot;https://github.com/grafana/grafana&quot;&gt;Grafana&lt;/a&gt; is a popular graphing tool that lets you build dashboards with data from Graphite, Elasticsearch, OpenTSDB, Prometheus and, of course, InfluxDB. From version 4 of grafana, you can also setup alerts based on query conditions. We will setup dashboard that can be drilled down to specific host and service.&lt;/p&gt;
+
+&lt;h2 id=&quot;docker-swarm-mode&quot;&gt;Docker Swarm Mode&lt;/h2&gt;
+
+&lt;p&gt;Docker introduced &lt;code class=&quot;highlighter-rouge&quot;&gt;Swarm Mode&lt;/code&gt; from version 1.12.0. This allows us to easily create and manage swarm of multiple hosts. The swarm mode has the key-value store for service discovery and orchestration capability in-built. You can join hosts into a swarm as a manager or a worker. Generally, manager handles the orchestration part and workers are used to run the containers. Since this is for demostration, we will run InfluxDB and Grafana in the manager itself.&lt;/p&gt;
+
+&lt;p&gt;Swarm Mode has an interesting feature called &lt;code class=&quot;highlighter-rouge&quot;&gt;router mesh&lt;/code&gt;. This acts as virtual load balancer. Let’s say that we have 10 containers running across 5 nodes and they listen to the port 80. Now, if you access the port 80 of any of the hosts. You will directed to any one of the 10 running instance, even the instances that are not even in that particular host. So you can publish the IP of any of the nodes and the requests will be automatically load balanced between all the 10 containers.&lt;/p&gt;
+
+&lt;p&gt;To follow along with the demonstration, you need to have the following prerequisites:&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;Docker&lt;/code&gt;: version &amp;gt;= 1.13, to support Docker Compose File version 3 and Swarm Mode.&lt;/li&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;Docker Machine&lt;/code&gt;: version &amp;gt;= 0.8&lt;/li&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;Docker Compose&lt;/code&gt;: version &amp;gt;= 1.10, to support Docker Compose file version 3&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;We will be creating 3 local VMs to form the swarm using the &lt;code class=&quot;highlighter-rouge&quot;&gt;Virtualbox&lt;/code&gt; plugin of &lt;code class=&quot;highlighter-rouge&quot;&gt;docker-machine&lt;/code&gt;. For this, you need to have &lt;a href=&quot;https://www.virtualbox.org/&quot;&gt;Virtualbox&lt;/a&gt; installed in the system. You may also deploy the nodes in cloud services using different plugins. The steps after creating in the VMs are same for all the plugins. You can read more about docker-machine &lt;a href=&quot;https://docs.docker.com/machine/get-started/&quot;&gt;here&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;We will using the default options to create the VMs. To know more about the options available, check &lt;a href=&quot;https://docs.docker.com/machine/drivers/virtualbox/&quot;&gt;here&lt;/a&gt;. We will create a host named &lt;code class=&quot;highlighter-rouge&quot;&gt;manager&lt;/code&gt; that acts as the manager for the swarm and two hosts &lt;code class=&quot;highlighter-rouge&quot;&gt;agent1&lt;/code&gt; and &lt;code class=&quot;highlighter-rouge&quot;&gt;agent2&lt;/code&gt; to act as the workers. You may create as many nodes as you want. Just repeat the commands with the host names changed. To create the VMs, execute the follwing commands.&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;docker-machine create manager
+docker-machine create agent1
+docker-machine create agent2&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;These commands may take some time. After creating the VMS, the output for the command &lt;code class=&quot;highlighter-rouge&quot;&gt;docker-machine ls&lt;/code&gt; should look something like this.&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;NAME      ACTIVE   DRIVER       STATE     URL                         SWARM   DOCKER        ERRORS
+agent1    -        virtualbox   Running   tcp://192.168.99.101:2376           v17.03.1-ce
+agent2    -        virtualbox   Running   tcp://192.168.99.102:2376           v17.03.1-ce
+manager   -        virtualbox   Running   tcp://192.168.99.100:2376           v17.03.1-ce          &lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;Now you have to switch context to use the docker engine in the &lt;code class=&quot;highlighter-rouge&quot;&gt;manager&lt;/code&gt;. We will be doing the rest of the demostration in the docker engine of the &lt;code class=&quot;highlighter-rouge&quot;&gt;manager&lt;/code&gt; and NOT in our local system. To do this, run the following command.&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;&lt;span class=&quot;nb&quot;&gt;eval&lt;/span&gt; &lt;span class=&quot;sb&quot;&gt;`&lt;/span&gt;docker-machine env manager&lt;span class=&quot;sb&quot;&gt;`&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;We have now switched over to the docker engine in &lt;code class=&quot;highlighter-rouge&quot;&gt;manager&lt;/code&gt;. We will initialize the swarm with &lt;code class=&quot;highlighter-rouge&quot;&gt;manager&lt;/code&gt; acting as its manager. We have to mention the IP which will be published for other nodes to join the swarm. We will use the IP of &lt;code class=&quot;highlighter-rouge&quot;&gt;manager&lt;/code&gt; for this. The command, &lt;code class=&quot;highlighter-rouge&quot;&gt;docker-machine ip manager&lt;/code&gt; will get you this. So, to create the swarm, run the following command.&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;docker swarm init --advertise-addr &lt;span class=&quot;sb&quot;&gt;`&lt;/span&gt;docker-machine ip manager&lt;span class=&quot;sb&quot;&gt;`&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;Now, we need to add the two workers to this swarm. To do this, we need to pass a &lt;code class=&quot;highlighter-rouge&quot;&gt;Join Token&lt;/code&gt; and the IP published when the swarm was created. To get the token for joining the swarm as a worker, you can run the command &lt;code class=&quot;highlighter-rouge&quot;&gt;docker swarm join-token -q worker&lt;/code&gt;. As before, &lt;code class=&quot;highlighter-rouge&quot;&gt;docker-machine ip manager&lt;/code&gt; will get the IP for joining and the default port for this is &lt;code class=&quot;highlighter-rouge&quot;&gt;2377&lt;/code&gt;. We could join the swarm by changing the context to each of the workers, but it is easier to run the commands as via SSH. To join workers to the swarm, run the following commands.&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;docker-machine ssh agent1 docker swarm join --token &lt;span class=&quot;sb&quot;&gt;`&lt;/span&gt;docker swarm join-token -q worker&lt;span class=&quot;sb&quot;&gt;`&lt;/span&gt; &lt;span class=&quot;sb&quot;&gt;`&lt;/span&gt;docker-machine ip manager&lt;span class=&quot;sb&quot;&gt;`&lt;/span&gt;:2377
+docker-machine ssh agent2 docker swarm join --token &lt;span class=&quot;sb&quot;&gt;`&lt;/span&gt;docker swarm join-token -q worker&lt;span class=&quot;sb&quot;&gt;`&lt;/span&gt; &lt;span class=&quot;sb&quot;&gt;`&lt;/span&gt;docker-machine ip manager&lt;span class=&quot;sb&quot;&gt;`&lt;/span&gt;:2377&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;You can see the nodes in the swarm with the command &lt;code class=&quot;highlighter-rouge&quot;&gt;docker node ls&lt;/code&gt;. Once the workers are added the output of the command must look something like this.&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;ID                           HOSTNAME  STATUS  AVAILABILITY  MANAGER STATUS
+3j231njh03spl0j8h67z069cy &lt;span class=&quot;k&quot;&gt;*&lt;/span&gt;  manager   Ready   Active        Leader
+muxpteij6aldkixnl31f0asar    agent1    Ready   Active
+y2gstaqpqix1exz09nyjn8z41    agent2    Ready   Active&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;h2 id=&quot;docker-stack&quot;&gt;Docker Stack&lt;/h2&gt;
+
+&lt;p&gt;With the version 3 of &lt;code class=&quot;highlighter-rouge&quot;&gt;docker-compose&lt;/code&gt; file, we can define the entire stack with the deployment strategy with one file and deploy it with one command. The main difference between version 2 and 3 of docker-compose file is the introduction of the &lt;code class=&quot;highlighter-rouge&quot;&gt;deploy&lt;/code&gt; parameter for each service. This parameter will define where and how you want the containers to be deployed. The &lt;code class=&quot;highlighter-rouge&quot;&gt;docker-compose&lt;/code&gt; file for the monitoring file is given below.&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-conf&quot; data-lang=&quot;conf&quot;&gt;&lt;span class=&quot;n&quot;&gt;version&lt;/span&gt;: &lt;span class=&quot;s1&quot;&gt;'3'&lt;/span&gt;
+
+&lt;span class=&quot;n&quot;&gt;services&lt;/span&gt;:
+  &lt;span class=&quot;n&quot;&gt;influx&lt;/span&gt;:
+    &lt;span class=&quot;n&quot;&gt;image&lt;/span&gt;: &lt;span class=&quot;n&quot;&gt;influxdb&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;volumes&lt;/span&gt;:
+      - &lt;span class=&quot;n&quot;&gt;influx&lt;/span&gt;:/&lt;span class=&quot;n&quot;&gt;var&lt;/span&gt;/&lt;span class=&quot;n&quot;&gt;lib&lt;/span&gt;/&lt;span class=&quot;n&quot;&gt;influxdb&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;deploy&lt;/span&gt;:
+      &lt;span class=&quot;n&quot;&gt;replicas&lt;/span&gt;: &lt;span class=&quot;m&quot;&gt;1&lt;/span&gt;
+      &lt;span class=&quot;n&quot;&gt;placement&lt;/span&gt;:
+        &lt;span class=&quot;n&quot;&gt;constraints&lt;/span&gt;:
+          - &lt;span class=&quot;n&quot;&gt;node&lt;/span&gt;.&lt;span class=&quot;n&quot;&gt;role&lt;/span&gt; == &lt;span class=&quot;n&quot;&gt;manager&lt;/span&gt;
+
+  &lt;span class=&quot;n&quot;&gt;grafana&lt;/span&gt;:
+    &lt;span class=&quot;n&quot;&gt;image&lt;/span&gt;: &lt;span class=&quot;n&quot;&gt;grafana&lt;/span&gt;/&lt;span class=&quot;n&quot;&gt;grafana&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;ports&lt;/span&gt;:
+      - &lt;span class=&quot;m&quot;&gt;0&lt;/span&gt;.&lt;span class=&quot;m&quot;&gt;0&lt;/span&gt;.&lt;span class=&quot;m&quot;&gt;0&lt;/span&gt;.&lt;span class=&quot;m&quot;&gt;0&lt;/span&gt;:&lt;span class=&quot;m&quot;&gt;80&lt;/span&gt;:&lt;span class=&quot;m&quot;&gt;3000&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;volumes&lt;/span&gt;:
+      - &lt;span class=&quot;n&quot;&gt;grafana&lt;/span&gt;:/&lt;span class=&quot;n&quot;&gt;var&lt;/span&gt;/&lt;span class=&quot;n&quot;&gt;lib&lt;/span&gt;/&lt;span class=&quot;n&quot;&gt;grafana&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;depends_on&lt;/span&gt;:
+      - &lt;span class=&quot;n&quot;&gt;influx&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;deploy&lt;/span&gt;:
+      &lt;span class=&quot;n&quot;&gt;replicas&lt;/span&gt;: &lt;span class=&quot;m&quot;&gt;1&lt;/span&gt;
+      &lt;span class=&quot;n&quot;&gt;placement&lt;/span&gt;:
+        &lt;span class=&quot;n&quot;&gt;constraints&lt;/span&gt;:
+          - &lt;span class=&quot;n&quot;&gt;node&lt;/span&gt;.&lt;span class=&quot;n&quot;&gt;role&lt;/span&gt; == &lt;span class=&quot;n&quot;&gt;manager&lt;/span&gt;
+
+  &lt;span class=&quot;n&quot;&gt;cadvisor&lt;/span&gt;:
+    &lt;span class=&quot;n&quot;&gt;image&lt;/span&gt;: &lt;span class=&quot;n&quot;&gt;google&lt;/span&gt;/&lt;span class=&quot;n&quot;&gt;cadvisor&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;hostname&lt;/span&gt;: &lt;span class=&quot;s1&quot;&gt;'{{.Node.ID}}'&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;command&lt;/span&gt;: -&lt;span class=&quot;n&quot;&gt;logtostderr&lt;/span&gt; -&lt;span class=&quot;n&quot;&gt;docker_only&lt;/span&gt; -&lt;span class=&quot;n&quot;&gt;storage_driver&lt;/span&gt;=&lt;span class=&quot;n&quot;&gt;influxdb&lt;/span&gt; -&lt;span class=&quot;n&quot;&gt;storage_driver_db&lt;/span&gt;=&lt;span class=&quot;n&quot;&gt;cadvisor&lt;/span&gt; -&lt;span class=&quot;n&quot;&gt;storage_driver_host&lt;/span&gt;=&lt;span class=&quot;n&quot;&gt;influx&lt;/span&gt;:&lt;span class=&quot;m&quot;&gt;8086&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;volumes&lt;/span&gt;:
+      - /:/&lt;span class=&quot;n&quot;&gt;rootfs&lt;/span&gt;:&lt;span class=&quot;n&quot;&gt;ro&lt;/span&gt;
+      - /&lt;span class=&quot;n&quot;&gt;var&lt;/span&gt;/&lt;span class=&quot;n&quot;&gt;run&lt;/span&gt;:/&lt;span class=&quot;n&quot;&gt;var&lt;/span&gt;/&lt;span class=&quot;n&quot;&gt;run&lt;/span&gt;:&lt;span class=&quot;n&quot;&gt;rw&lt;/span&gt;
+      - /&lt;span class=&quot;n&quot;&gt;sys&lt;/span&gt;:/&lt;span class=&quot;n&quot;&gt;sys&lt;/span&gt;:&lt;span class=&quot;n&quot;&gt;ro&lt;/span&gt;
+      - /&lt;span class=&quot;n&quot;&gt;var&lt;/span&gt;/&lt;span class=&quot;n&quot;&gt;lib&lt;/span&gt;/&lt;span class=&quot;n&quot;&gt;docker&lt;/span&gt;/:/&lt;span class=&quot;n&quot;&gt;var&lt;/span&gt;/&lt;span class=&quot;n&quot;&gt;lib&lt;/span&gt;/&lt;span class=&quot;n&quot;&gt;docker&lt;/span&gt;:&lt;span class=&quot;n&quot;&gt;ro&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;depends_on&lt;/span&gt;:
+      - &lt;span class=&quot;n&quot;&gt;influx&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;deploy&lt;/span&gt;:
+      &lt;span class=&quot;n&quot;&gt;mode&lt;/span&gt;: &lt;span class=&quot;n&quot;&gt;global&lt;/span&gt;
+
+&lt;span class=&quot;n&quot;&gt;volumes&lt;/span&gt;:
+  &lt;span class=&quot;n&quot;&gt;influx&lt;/span&gt;:
+    &lt;span class=&quot;n&quot;&gt;driver&lt;/span&gt;: &lt;span class=&quot;n&quot;&gt;local&lt;/span&gt;
+  &lt;span class=&quot;n&quot;&gt;grafana&lt;/span&gt;:
+    &lt;span class=&quot;n&quot;&gt;driver&lt;/span&gt;: &lt;span class=&quot;n&quot;&gt;local&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;We will start by saying that we are using the version 3 of &lt;code class=&quot;highlighter-rouge&quot;&gt;docker-compose&lt;/code&gt; file. We have following 3 services in the stack.&lt;/p&gt;
+
+&lt;h1 id=&quot;influx&quot;&gt;influx&lt;/h1&gt;
+
+&lt;p&gt;This uses the &lt;code class=&quot;highlighter-rouge&quot;&gt;influxdb&lt;/code&gt; image and for persistent storage, we are creating a volume named &lt;code class=&quot;highlighter-rouge&quot;&gt;influx&lt;/code&gt; that is mounted to the &lt;code class=&quot;highlighter-rouge&quot;&gt;/var/lib/influxdb&lt;/code&gt; folder in the container. In the deploy key, we are saying that we need one copy of InfluxDB which we will place in the &lt;code class=&quot;highlighter-rouge&quot;&gt;manager&lt;/code&gt;. Since we are using docker engine in the &lt;code class=&quot;highlighter-rouge&quot;&gt;manager&lt;/code&gt;, we can execute commands to this container from here itself. As both the other services needs influxDB to run, we will add a &lt;code class=&quot;highlighter-rouge&quot;&gt;depends_on&lt;/code&gt; key to other services with &lt;code class=&quot;highlighter-rouge&quot;&gt;influx&lt;/code&gt; in it.&lt;/p&gt;
+
+&lt;h1 id=&quot;grafana-1&quot;&gt;grafana&lt;/h1&gt;
+
+&lt;p&gt;We will use the image &lt;code class=&quot;highlighter-rouge&quot;&gt;grafana/grafana&lt;/code&gt; and expose the port &lt;code class=&quot;highlighter-rouge&quot;&gt;3000&lt;/code&gt; of the container to port &lt;code class=&quot;highlighter-rouge&quot;&gt;80&lt;/code&gt; of the host. The &lt;code class=&quot;highlighter-rouge&quot;&gt;router mesh&lt;/code&gt; feature will then let us access grafana from port 80 of any host in the swarm. We have another volume named &lt;code class=&quot;highlighter-rouge&quot;&gt;grafana&lt;/code&gt; mounted to &lt;code class=&quot;highlighter-rouge&quot;&gt;/var/lib/grafana&lt;/code&gt; in the container for persistent data. As before, we also deploy one copy of grafana in the &lt;code class=&quot;highlighter-rouge&quot;&gt;manager&lt;/code&gt;.&lt;/p&gt;
+
+&lt;h1 id=&quot;cadvisor-1&quot;&gt;cadvisor&lt;/h1&gt;
+
+&lt;p&gt;cAdvisor service has much more configuration required than the other services. To know more, check &lt;a href=&quot;https://github.com/google/cadvisor&quot;&gt;this&lt;/a&gt; out. The hostname key is a tricky one. We intend to put one agent in each node of the swarm and this container will collect all metrics from the node and the containers running in it. When cAdvisor send metrics to InfluxDB, it send it with a tag &lt;code class=&quot;highlighter-rouge&quot;&gt;machine&lt;/code&gt; that contains the hostname of cAdvisor container. We need to match it with the ID of the node running it. Docker stacks allows templating in naming. You can find more information about this &lt;a href=&quot;https://github.com/docker/docker/blob/master/docs/reference/commandline/service_create.md#create-services-using-templates&quot;&gt;here&lt;/a&gt;. We have named the containers with the ID of the node running it so that we know where the metric is coming from. The is done by the value &lt;code class=&quot;highlighter-rouge&quot;&gt;'{{.Node.ID}}'&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;We also add some command line parameters to cadvisor. More about this can be found here. The &lt;code class=&quot;highlighter-rouge&quot;&gt;logtostderr&lt;/code&gt; redirects the logs generated by cadvsior to &lt;code class=&quot;highlighter-rouge&quot;&gt;stderr&lt;/code&gt;, which makes it easy to debug. The &lt;code class=&quot;highlighter-rouge&quot;&gt;docker_only&lt;/code&gt; flag says that we are only interested in docker based containers. The next three parameters defines where you want metrics to be pushed for storage. We are asking cAdvisor to push the metrics to &lt;code class=&quot;highlighter-rouge&quot;&gt;cadvisor&lt;/code&gt; database in InfluxDB server listening at &lt;code class=&quot;highlighter-rouge&quot;&gt;influx:8086&lt;/code&gt;. This will send the metrics to the influx service in the stack. In a stack, all ports are exposed and you don’t have to specifically mention them.&lt;/p&gt;
+
+&lt;p&gt;cAdvisor need the volumes mentioned in the file to collect the metrics from the host and docker system. We use the mode &lt;code class=&quot;highlighter-rouge&quot;&gt;global&lt;/code&gt; for deploy in cadvisor service. This will ensure that exactly one instance of cadvisor service will be run in each node of the swarm.&lt;/p&gt;
+
+&lt;p&gt;Finally, at the end of the file, we have the &lt;code class=&quot;highlighter-rouge&quot;&gt;volumes&lt;/code&gt; key with the &lt;code class=&quot;highlighter-rouge&quot;&gt;influx&lt;/code&gt; and &lt;code class=&quot;highlighter-rouge&quot;&gt;grafana&lt;/code&gt; volumes. As we are using the &lt;code class=&quot;highlighter-rouge&quot;&gt;local&lt;/code&gt; driver for both the volumes, the volumes will be stored in the &lt;code class=&quot;highlighter-rouge&quot;&gt;manager&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;To deploy this stack, save the above file as &lt;code class=&quot;highlighter-rouge&quot;&gt;docker-stack.yml&lt;/code&gt; and run the following command.&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;docker stack deploy -c docker-stack.yml monitor&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;This will start the services in the stack which is named &lt;code class=&quot;highlighter-rouge&quot;&gt;monitor&lt;/code&gt;. This might take some time the first time as the nodes have to download the images. Also, you need to create the database named &lt;code class=&quot;highlighter-rouge&quot;&gt;cadvisor&lt;/code&gt; in InfluxDB to store the metrics.&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;docker &lt;span class=&quot;nb&quot;&gt;exec&lt;/span&gt; &lt;span class=&quot;sb&quot;&gt;`&lt;/span&gt;docker ps | grep -i influx | awk &lt;span class=&quot;s1&quot;&gt;'{print $1}'&lt;/span&gt;&lt;span class=&quot;sb&quot;&gt;`&lt;/span&gt; influx -execute &lt;span class=&quot;s1&quot;&gt;'CREATE DATABASE cadvisor'&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;This command might fail saying that the &lt;code class=&quot;highlighter-rouge&quot;&gt;influx&lt;/code&gt; container doesn’t exist. This is beacuse the container is not yet ready. Wait for some time and run it again. We are able to run the commands in the &lt;code class=&quot;highlighter-rouge&quot;&gt;influx&lt;/code&gt; service beacuse it is running in &lt;code class=&quot;highlighter-rouge&quot;&gt;manager&lt;/code&gt; and we are using its docker engine. To find the ID of InfluxDB container, you can use the command &lt;code class=&quot;highlighter-rouge&quot;&gt;docker ps | grep -i influx | awk '{print $1}'&lt;/code&gt; and we are executing the command &lt;code class=&quot;highlighter-rouge&quot;&gt;influx -execute 'CREATE DATABASE cadvisor'&lt;/code&gt; to create the new database names &lt;code class=&quot;highlighter-rouge&quot;&gt;cadvisor&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;To see the services in the stack, you can use the command &lt;code class=&quot;highlighter-rouge&quot;&gt;docker stack services monitor&lt;/code&gt;, the output of the command will look like this.&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;ID            NAME              MODE        REPLICAS  IMAGE
+0fru8w12pqdx  monitor_influx    replicated  1/1       influxdb:latest
+m4r34h5ho984  monitor_grafana   replicated  1/1       grafana/grafana:latest
+s1yeap330m7e  monitor_cadvisor  global      3/3       google/cadvisor:latest&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;You can see the running containers in the stack with the command &lt;code class=&quot;highlighter-rouge&quot;&gt;docker stack ps monitor&lt;/code&gt;. Its output will look like this.&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;ID            NAME                                        IMAGE                   NODE     DESIRED STATE  CURRENT STATE               ERROR  PORTS
+n7kobaozqzj6  monitor_cadvisor.y78ac29r904m8uy6hxffb7uvn  google/cadvisor:latest  agent2   Running        Running about a minute ago
+1nsispop3hsu  monitor_cadvisor.z52c9vloiutl5dbuj5lnykzvl  google/cadvisor:latest  agent1   Running        Running about a minute ago
+9n6djc80mamd  monitor_cadvisor.qn82bfj5cpin2cpmx9qv1j56s  google/cadvisor:latest  manager  Running        Running about a minute ago
+hyr8piriwa0x  monitor_grafana.1                           grafana/grafana:latest  manager  Running        Running about a minute ago
+zk7u8g73ko5w  monitor_influx.1                            influxdb:latest         manager  Running        Running about a minute ago&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;h2 id=&quot;setting-up-grafana&quot;&gt;Setting Up Grafana&lt;/h2&gt;
+
+&lt;p&gt;Once the services are deployed, you can open up grafana with the IP of any node in the swarm. We will open the IP of manager with the following command.&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;open http://&lt;span class=&quot;sb&quot;&gt;`&lt;/span&gt;docker-machine ip manager&lt;span class=&quot;sb&quot;&gt;`&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;By default, use the username &lt;code class=&quot;highlighter-rouge&quot;&gt;admin&lt;/code&gt; and password &lt;code class=&quot;highlighter-rouge&quot;&gt;admin&lt;/code&gt; to login to grafana. The first thing to do in grafana is to add InfluxDB as the datasource. In the home page, there must be a &lt;code class=&quot;highlighter-rouge&quot;&gt;Create your first data source&lt;/code&gt; link, click that. If the link is not visible, you can select &lt;code class=&quot;highlighter-rouge&quot;&gt;Data Sources&lt;/code&gt; from menu and choosing &lt;code class=&quot;highlighter-rouge&quot;&gt;Add data source&lt;/code&gt; from there. This will give you the form to add a new Data Source.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/images/grafana-datasource@2x.jpg&quot; srcset=&quot;/assets/images/grafana-datasource@1x.jpg 300w, /assets/images/grafana-datasource@2x.jpg 600w, /assets/images/grafana-datasource@3x.jpg 900w&quot; sizes=&quot;(min-width: 960px) 900px, 100vw&quot; alt=&quot;Add Data Source in Grafana&quot; class=&quot;center-image&quot; /&gt;
+&lt;em class=&quot;image-caption&quot;&gt;Add Data Source in Grafana&lt;/em&gt;&lt;/p&gt;
+
+&lt;p&gt;You can give any name for the source. Check the default box, so that you won’t have to mention the data source everywhere. Choose the type as &lt;code class=&quot;highlighter-rouge&quot;&gt;InfluxDB&lt;/code&gt;. Now, the URL is &lt;code class=&quot;highlighter-rouge&quot;&gt;http://influx:8086&lt;/code&gt; and Access is &lt;code class=&quot;highlighter-rouge&quot;&gt;proxy&lt;/code&gt;. This will point to the port listened by the InfluxDb container. Finally give the Database as &lt;code class=&quot;highlighter-rouge&quot;&gt;cadvisor&lt;/code&gt; and click the &lt;code class=&quot;highlighter-rouge&quot;&gt;Save and Test&lt;/code&gt; button. This should give the message &lt;code class=&quot;highlighter-rouge&quot;&gt;Data source is working&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;In the &lt;a href=&quot;https://github.com/botleg/swarm-monitoring&quot;&gt;github repository&lt;/a&gt;, I have added the file &lt;code class=&quot;highlighter-rouge&quot;&gt;dashboard.json&lt;/code&gt;, that can be imported to Grafana. This will provide a dashboard that monitors the systems and the containers running in the swarm. We will import the dashboard now and talk about it in the next section. From the menu, hover over &lt;code class=&quot;highlighter-rouge&quot;&gt;Dashboards&lt;/code&gt; and select &lt;code class=&quot;highlighter-rouge&quot;&gt;Import Option&lt;/code&gt;. Click the &lt;code class=&quot;highlighter-rouge&quot;&gt;Upload .json file&lt;/code&gt; button and choose the &lt;code class=&quot;highlighter-rouge&quot;&gt;dashboard.json&lt;/code&gt; file. Select the data source and click the &lt;code class=&quot;highlighter-rouge&quot;&gt;Import&lt;/code&gt; button to import this dashboard.&lt;/p&gt;
+
+&lt;h2 id=&quot;grafana-dashboard&quot;&gt;Grafana Dashboard&lt;/h2&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/images/grafana-dashboard@2x.jpg&quot; srcset=&quot;/assets/images/grafana-dashboard@1x.jpg 300w, /assets/images/grafana-dashboard@2x.jpg 600w, /assets/images/grafana-dashboard@3x.jpg 900w&quot; sizes=&quot;(min-width: 960px) 900px, 100vw&quot; alt=&quot;Grafana Dashboard&quot; class=&quot;center-image&quot; /&gt;
+&lt;em class=&quot;image-caption&quot;&gt;Grafana Dashboard&lt;/em&gt;&lt;/p&gt;
+
+&lt;p&gt;The dashboard imported to Grafana will monitor the host and containers in the swarm. You can drill down to host level and even to the container level in each host. To be able to do this, we are using two variables. To add variables to Grafana dashboard, we use the templating feature. To know more about templating with InfluxDB, check &lt;a href=&quot;http://docs.grafana.org/features/datasources/influxdb/#templating&quot;&gt;here&lt;/a&gt;. There are two varibles, &lt;code class=&quot;highlighter-rouge&quot;&gt;host&lt;/code&gt; to select the node and &lt;code class=&quot;highlighter-rouge&quot;&gt;container&lt;/code&gt; to select the container. To see the variables, select Settings from dashboard page and choose &lt;code class=&quot;highlighter-rouge&quot;&gt;Templating&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;The first variable is &lt;code class=&quot;highlighter-rouge&quot;&gt;host&lt;/code&gt; and this provide the option to select the node and drill down to its metrics. When cAdvisor sends metrics to InfluxDB, it also includes some tags, which we will use to filter the metrics. There is a tag named &lt;code class=&quot;highlighter-rouge&quot;&gt;machine&lt;/code&gt; that shows the hostname of the cAdvisor instance. In this case, it will match the ID of the hosts in swarm. To get the values in the tag, we use &lt;code class=&quot;highlighter-rouge&quot;&gt;show tag values with key = &quot;machine&quot;&lt;/code&gt; as the query.&lt;/p&gt;
+
+&lt;p&gt;The second variable is &lt;code class=&quot;highlighter-rouge&quot;&gt;container&lt;/code&gt; and this is to further drill down to the container level metrics. There is a tag named &lt;code class=&quot;highlighter-rouge&quot;&gt;container_name&lt;/code&gt; that contains the container name. We also need to only get the values based on the value of &lt;code class=&quot;highlighter-rouge&quot;&gt;host&lt;/code&gt; variables. So, the query is &lt;code class=&quot;highlighter-rouge&quot;&gt;show tag values with key = &quot;container_name&quot; WHERE machine =~ /^$host$/&lt;/code&gt;. This will fetch the containers which is running in the node selected by the &lt;code class=&quot;highlighter-rouge&quot;&gt;host&lt;/code&gt; variable.&lt;/p&gt;
+
+&lt;p&gt;The container name will look something like this, &lt;code class=&quot;highlighter-rouge&quot;&gt;monitor_cadvisor.y78ac29r904m8uy6hxffb7uvn.3j231njh03spl0j8h67z069cy&lt;/code&gt;. However, we are only interested in &lt;code class=&quot;highlighter-rouge&quot;&gt;monitor_cadvisor&lt;/code&gt; part of it, till the first period. If there are multiple instance of the same service, we need seperate lines. To filter the portion until first period, we use &lt;code class=&quot;highlighter-rouge&quot;&gt;/([^.]+)/&lt;/code&gt; as the regex.&lt;/p&gt;
+
+&lt;p&gt;Now that we have set up the varibles, we can use it in the graphs. We will discuss about &lt;code class=&quot;highlighter-rouge&quot;&gt;Memory&lt;/code&gt; graph and the rest are similar. The memory values is present in the &lt;code class=&quot;highlighter-rouge&quot;&gt;memory_usage&lt;/code&gt; series in InfluxDB, so the query starts with &lt;code class=&quot;highlighter-rouge&quot;&gt;SELECT &quot;value&quot; FROM &quot;memory_usage&quot;&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;Now we add the filters with the &lt;code class=&quot;highlighter-rouge&quot;&gt;WHERE&lt;/code&gt; keyword. The first condition is that &lt;code class=&quot;highlighter-rouge&quot;&gt;machine&lt;/code&gt; is equal to &lt;code class=&quot;highlighter-rouge&quot;&gt;host&lt;/code&gt; variable. That is given by &lt;code class=&quot;highlighter-rouge&quot;&gt;&quot;machine&quot; =~ /^$host$/&lt;/code&gt;. The second condition is that &lt;code class=&quot;highlighter-rouge&quot;&gt;container_name&lt;/code&gt; starts with the &lt;code class=&quot;highlighter-rouge&quot;&gt;container&lt;/code&gt; variable. We use the &lt;code class=&quot;highlighter-rouge&quot;&gt;starts with&lt;/code&gt; operator here because we have filtered the &lt;code class=&quot;highlighter-rouge&quot;&gt;container&lt;/code&gt; variable until first period. This is given by &lt;code class=&quot;highlighter-rouge&quot;&gt;&quot;container_name&quot; =~ /^$container$*/&lt;/code&gt;. The final condition is to match the time interval selected in grafana dashboard, &lt;code class=&quot;highlighter-rouge&quot;&gt;$timeFilter&lt;/code&gt;. The query is now &lt;code class=&quot;highlighter-rouge&quot;&gt;SELECT &quot;value&quot; FROM &quot;memory_usage&quot; WHERE &quot;container_name&quot; =~ /^$container$*/ AND &quot;machine&quot; =~ /^$host$/ AND $timeFilter&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;As we need seperate lines for different hosts and container, you need to group the data based on the &lt;code class=&quot;highlighter-rouge&quot;&gt;machine&lt;/code&gt; and &lt;code class=&quot;highlighter-rouge&quot;&gt;container_name&lt;/code&gt; tags. So now the entire query becomes, &lt;code class=&quot;highlighter-rouge&quot;&gt;SELECT &quot;value&quot; FROM &quot;memory_usage&quot; WHERE &quot;container_name&quot; =~ /^$container$*/ AND &quot;machine&quot; =~ /^$host$/ AND $timeFilter GROUP BY &quot;machine&quot;, &quot;container_name&quot;&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;We have also applied the alias for this query as &lt;code class=&quot;highlighter-rouge&quot;&gt;Memory {host: $tag_machine, container: $tag_container_name}&lt;/code&gt;. Here, &lt;code class=&quot;highlighter-rouge&quot;&gt;$tag_machine&lt;/code&gt; will be replaced by the value in &lt;code class=&quot;highlighter-rouge&quot;&gt;machine&lt;/code&gt; tag and &lt;code class=&quot;highlighter-rouge&quot;&gt;tag_container_name&lt;/code&gt; will be replaced by the value in &lt;code class=&quot;highlighter-rouge&quot;&gt;container_name&lt;/code&gt; tag. The rest of the graphs are similar. Only the series name changes. You can also create alerts for these metrics from inside Grafana. For more about Alerting, check &lt;a href=&quot;http://docs.grafana.org/alerting/rules/&quot;&gt;here&lt;/a&gt;.&lt;/p&gt;
+
+&lt;h2 id=&quot;conclusion&quot;&gt;Conclusion&lt;/h2&gt;
+
+&lt;p&gt;In this article, we were able to set up scalable monitoring solution for Docker Swarm, that automatically monitors all hosts and containers running in the swarm. While doing this, we became familiar with popular open-source tools like Grafana, InfluxDB and cAdvisor.&lt;/p&gt;
+
+&lt;p&gt;Once you are done with the demonstration, you can remove the stack with command,&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;docker stack rm monitor&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;If you are done with the VMs created for the demo, you can stop and remove then with the following commands,&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;docker-machine stop manager agent1 agent2
+docker-machine rm -f manager agent1 agent2&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+</description>
+        <pubDate>Thu, 30 Mar 2017 18:00:00 +0000</pubDate>
+        <link>https://botleg.com/stories/monitoring-docker-swarm-with-cadvisor-influxdb-and-grafana/</link>
+        <guid isPermaLink="true">https://botleg.com/stories/monitoring-docker-swarm-with-cadvisor-influxdb-and-grafana/</guid>
+        
+        <category>docker</category>
+        
+        <category>swarm</category>
+        
+        <category>monitoring</category>
+        
+        <category>cadvisor</category>
+        
+        <category>influxdb</category>
+        
+        <category>grafana</category>
+        
+        <category>dashboard</category>
+        
+        <category>alerting</category>
+        
+        <category>docker-machine</category>
+        
+        <category>swarmmode</category>
+        
+        
+        <category>devops</category>
+        
+      </item>
     
       <item>
         <title>Setup Gitlab for Docker based development</title>
@@ -2252,99 +2508,6 @@ WORKDIR /&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;app&lt;/span&gt;
         <category>ngrok</category>
         
         <category>tunnel</category>
-        
-        
-        <category>misc</category>
-        
-      </item>
-    
-      <item>
-        <title>Tricks with SSH</title>
-        <author><name>Hanzel Jesheen</name></author>
-        <description>&lt;p&gt;Almost all developers have some sort of experience working with &lt;code class=&quot;highlighter-rouge&quot;&gt;Secure Shell&lt;/code&gt; or &lt;code class=&quot;highlighter-rouge&quot;&gt;SSH&lt;/code&gt;. It allows you to connect to a remote location and communicate securely. In this article, I’ll share couple of tips that will make working with SSH easier.&lt;/p&gt;
-
-&lt;h2 id=&quot;ssh-config&quot;&gt;SSH Config&lt;/h2&gt;
-&lt;p&gt;The basic way of connecting to a remote server is,&lt;/p&gt;
-
-&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;ssh user@ip -p 22&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
-
-&lt;p&gt;It is not easy to remember a bunch of ip addresses and type those in everytime you want to connect to a remote server. SSH allows you to give alias to each connection configuration including hostname, username, port, etc. This is done with &lt;code class=&quot;highlighter-rouge&quot;&gt;SSH Config&lt;/code&gt;.&lt;/p&gt;
-
-&lt;p&gt;Add a new file, &lt;code class=&quot;highlighter-rouge&quot;&gt;~/.ssh/config&lt;/code&gt;. For each connection, add this block to the config file we just created.&lt;/p&gt;
-
-&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;  Host &amp;lt;&lt;span class=&quot;nb&quot;&gt;alias&lt;/span&gt;&amp;gt;
-    HostName &amp;lt;host-address&amp;gt;
-    Port &amp;lt;port&amp;gt;
-    User &amp;lt;username&amp;gt;
-    IdentityFile &amp;lt;private-key-file&amp;gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
-
-&lt;p&gt;The &lt;code class=&quot;highlighter-rouge&quot;&gt;IdentityFile&lt;/code&gt; field is optional, and it contains the path of the private key used for identity. An example of this block is given below.&lt;/p&gt;
-
-&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;  Host myremote
-    HostName 101.102.103.104
-    Port 22
-    User root
-    IdentityFile ~/.ssh/myremote.key&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
-
-&lt;p&gt;We can log into this remote server with the command,&lt;/p&gt;
-
-&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;ssh myremote&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
-
-&lt;p&gt;If you have copied your key to remote as an authorized key with &lt;code class=&quot;highlighter-rouge&quot;&gt;ssh-copy-id&lt;/code&gt;, you will be connected to the remote server. Even tab completion works for the alias names. Pretty convenient, right?&lt;/p&gt;
-
-&lt;h2 id=&quot;local-port-forward&quot;&gt;Local Port Forward&lt;/h2&gt;
-&lt;p&gt;SSH can be used to forward ports from a remote server to local system and vice-versa. Now, we’ll talk only about the former, also called local port forwarding. It is generally used to access blocked websites in a network. You can forward any of your local ports to a blocked site, and access it with the assigned local port.&lt;/p&gt;
-
-&lt;p&gt;For instance, you can forward your local port 5000 to &lt;a href=&quot;http://youtube.com&quot;&gt;YouTube&lt;/a&gt; with,&lt;/p&gt;
-
-&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;ssh -L 5000:youtube.com:80 user@host&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
-
-&lt;p&gt;Now, you can access YouTube at &lt;a href=&quot;http://localhost:5000&quot;&gt;localhost:5000&lt;/a&gt;.&lt;/p&gt;
-
-&lt;p&gt;There are a couple of other use cases for local port forwarding. The main one is to access services for local development. Most database in the network will only allow access to localhost and remote access will be blocked by the firewall. While it’s good for security, it would make the database inaccessible for local development.&lt;/p&gt;
-
-&lt;p&gt;We can use local port forwarding to solve this issue. Let’s assume, I’ve a &lt;a href=&quot;http://redis.io/&quot;&gt;Redis&lt;/a&gt; database running in &lt;code class=&quot;highlighter-rouge&quot;&gt;120.10.20.30:16379&lt;/code&gt;. If I have SSH access to this remote server, I can forward the remote port &lt;code class=&quot;highlighter-rouge&quot;&gt;16379&lt;/code&gt; to any of my local port.&lt;/p&gt;
-
-&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;ssh -L 0.0.0.0:5866:120.10.20.30:16379 user@host -Nf&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
-
-&lt;p&gt;We will go through all the different things in this command. The &lt;code class=&quot;highlighter-rouge&quot;&gt;-L&lt;/code&gt; flag for the SSH command tells that it’s a local port forward command.&lt;/p&gt;
-
-&lt;p&gt;The basic format of local port forward is,&lt;/p&gt;
-
-&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;&amp;lt;&lt;span class=&quot;nb&quot;&gt;local&lt;/span&gt;-ip&amp;gt;:&amp;lt;&lt;span class=&quot;nb&quot;&gt;local&lt;/span&gt;-port&amp;gt;:&amp;lt;remote-ip&amp;gt;:&amp;lt;remote-port&amp;gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
-
-&lt;p&gt;Here, the local ip is &lt;code class=&quot;highlighter-rouge&quot;&gt;0.0.0.0&lt;/code&gt;. What it does is that, it listens to all hosts in the network. So, any host in your network can access the Redis database with your ip. The local port is &lt;code class=&quot;highlighter-rouge&quot;&gt;5866&lt;/code&gt;. If your local ip address is &lt;code class=&quot;highlighter-rouge&quot;&gt;10.18.0.13&lt;/code&gt;, then Redis database can be accessed by anybody in your network at &lt;code class=&quot;highlighter-rouge&quot;&gt;10.18.0.13:5866&lt;/code&gt; and for you, it’s &lt;code class=&quot;highlighter-rouge&quot;&gt;localhost:5866&lt;/code&gt;. If your avoid the &lt;code class=&quot;highlighter-rouge&quot;&gt;local-ip&lt;/code&gt; part, only you can access the database.&lt;/p&gt;
-
-&lt;p&gt;The &lt;code class=&quot;highlighter-rouge&quot;&gt;remote-port&lt;/code&gt; and &lt;code class=&quot;highlighter-rouge&quot;&gt;remote-ip&lt;/code&gt; is that of the service, we need to forward. In the case, we are forwarding the database in &lt;code class=&quot;highlighter-rouge&quot;&gt;120.10.20.30:16379&lt;/code&gt;. Now we need to provide the user and host of the remote SSH login. As discussed above, we can replace this with an alias in SSH config.&lt;/p&gt;
-
-&lt;p&gt;There are two more flags in the command and these are very important. &lt;code class=&quot;highlighter-rouge&quot;&gt;-N&lt;/code&gt; flag asks the SSH to NOT execute the remote command. This prevents the remote shell from coming up. ‘-f’ flag makes the SSH to go into the background and excute the command like a daemon. Together, we can the flag &lt;code class=&quot;highlighter-rouge&quot;&gt;-Nf&lt;/code&gt;.&lt;/p&gt;
-
-&lt;h2 id=&quot;conclusion&quot;&gt;Conclusion&lt;/h2&gt;
-&lt;p&gt;In this article, I’ve shared two SSH techniques that saved me a lot of time and helped me with tricky situations. The first one involves using a config file for SSH and other one involves local port forwarding.&lt;/p&gt;
-</description>
-        <pubDate>Tue, 01 Dec 2015 01:00:00 +0000</pubDate>
-        <link>https://botleg.com/stories/tricks-with-ssh/</link>
-        <guid isPermaLink="true">https://botleg.com/stories/tricks-with-ssh/</guid>
-        
-        <category>SSH</category>
-        
-        <category>secure</category>
-        
-        <category>shell</category>
-        
-        <category>config</category>
-        
-        <category>remote</category>
-        
-        <category>local</category>
-        
-        <category>port</category>
-        
-        <category>ip</category>
-        
-        <category>alias</category>
-        
-        <category>forward</category>
         
         
         <category>misc</category>
