@@ -270,16 +270,3 @@ If you are done with the VMs created for the demo, you can stop and remove then 
 docker-machine stop manager agent1 agent2
 docker-machine rm -f manager agent1 agent2
 {% endhighlight %}
-
-
-
-
-
-
-
-
-
-
-
-
-
