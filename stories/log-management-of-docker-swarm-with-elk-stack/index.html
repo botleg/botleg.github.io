@@ -18,6 +18,9 @@ docker-machine ssh agent2 sudo sysctl -w vm.max_map_count<span class="o">=</span
       - <span class="n">esdata</span>:/<span class="n">usr</span>/<span class="n">share</span>/<span class="n">elasticsearch</span>/<span class="n">data</span>
     <span class="n">deploy</span>:
       <span class="n">replicas</span>: <span class="m">1</span>
+      <span class="n">placement</span>:
+        <span class="n">constraints</span>:
+          - <span class="n">node</span>.<span class="n">hostname</span> == <span class="n">agent1</span>
 
   <span class="n">logstash</span>:
     <span class="n">image</span>: <span class="n">docker</span>.<span class="n">elastic</span>.<span class="n">co</span>/<span class="n">logstash</span>/<span class="n">logstash</span>:<span class="m">5</span>.<span class="m">3</span>.<span class="m">2</span>
