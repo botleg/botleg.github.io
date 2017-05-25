@@ -29,9 +29,9 @@ function render(json) {
 
 function add() {
 	if (length++) {
-		comments.innerHTML = '<p class="comment-block"><span class="text">'+nameField.value+'</span><br/>'+textField.value+'</p>' + comments.innerHTML;
+		comments.innerHTML = '<p class="comment-block"><span class="text">'+nameField.value+'</span><br/>'+textField.value.replace(/\n/g, '<br/>')+'</p>' + comments.innerHTML;
 	} else {
-		comments.innerHTML = '<p class="comment-block"><span class="text">'+nameField.value+'</span><br/>'+textField.value+'</p>';
+		comments.innerHTML = '<p class="comment-block"><span class="text">'+nameField.value+'</span><br/>'+textField.value.replace(/\n/g, '<br/>')+'</p>';
 	}
 
 	nameField.value = "";
