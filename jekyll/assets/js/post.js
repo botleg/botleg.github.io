@@ -23,7 +23,7 @@ function render(json) {
 	
 	comments.innerHTML = "";
 	for (var i=0; i<json.length; i++) {
-		comments.innerHTML += '<p class="comment-block"><span class="text">'+json[i].name+'</span><br/>'+json[i].text+'</p>';
+		comments.innerHTML += '<p class="comment-block"><span class="text">'+json[i].name+'</span><br/>'+json[i].text.replace(/\n/g, '<br/>')+'</p>';
 	}
 }
 
