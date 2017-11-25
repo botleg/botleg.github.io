@@ -5,8 +5,8 @@
     <description>Hi, botleg is a blog where you can find tutorials and techniques in web development, devops, databases, cloud computing and anything related to technology.</description>
     <link>https://botleg.com/</link>
     <atom:link href="https://botleg.com/feed" rel="self" type="application/rss+xml"/>
-    <pubDate>Thu, 01 Jun 2017 16:30:04 +0000</pubDate>
-    <lastBuildDate>Thu, 01 Jun 2017 16:30:04 +0000</lastBuildDate>
+    <pubDate>Sat, 25 Nov 2017 07:46:01 +0000</pubDate>
+    <lastBuildDate>Sat, 25 Nov 2017 07:46:01 +0000</lastBuildDate>
     <generator>Jekyll v3.2.1</generator>
     
       <item>
@@ -597,9 +597,9 @@ docker-machine rm -f manager agent1 agent2&lt;/code&gt;&lt;/pre&gt;&lt;/figure&g
 &lt;p&gt;To follow along with the demonstration, you need to have the following prerequisites:&lt;/p&gt;
 
 &lt;ul&gt;
-  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;Docker&lt;/code&gt;: version &amp;gt;= 1.13, to support Docker Compose File version 3 and Swarm Mode.&lt;/li&gt;
-  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;Docker Machine&lt;/code&gt;: version &amp;gt;= 0.8&lt;/li&gt;
-  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;Docker Compose&lt;/code&gt;: version &amp;gt;= 1.10, to support Docker Compose file version 3&lt;/li&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;Docker&lt;/code&gt;: version &amp;gt;= 17.10 CE, to support Docker Compose File version 3 and Swarm Mode.&lt;/li&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;Docker Machine&lt;/code&gt;: version &amp;gt;= 0.12&lt;/li&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;Docker Compose&lt;/code&gt;: version &amp;gt;= 1.16, to support Docker Compose file version 3&lt;/li&gt;
 &lt;/ul&gt;
 
 &lt;p&gt;We will be creating 3 local VMs to form the swarm using the &lt;code class=&quot;highlighter-rouge&quot;&gt;Virtualbox&lt;/code&gt; plugin of &lt;code class=&quot;highlighter-rouge&quot;&gt;docker-machine&lt;/code&gt;. For this, you need to have &lt;a href=&quot;https://www.virtualbox.org/&quot;&gt;Virtualbox&lt;/a&gt; installed in the system. You may also deploy the nodes in cloud services using different plugins. The steps after creating in the VMs are same for all the plugins. You can read more about docker-machine &lt;a href=&quot;https://docs.docker.com/machine/get-started/&quot;&gt;here&lt;/a&gt;.&lt;/p&gt;
@@ -670,7 +670,7 @@ y2gstaqpqix1exz09nyjn8z41    agent2    Ready   Active&lt;/code&gt;&lt;/pre&gt;&l
 
   &lt;span class=&quot;n&quot;&gt;cadvisor&lt;/span&gt;:
     &lt;span class=&quot;n&quot;&gt;image&lt;/span&gt;: &lt;span class=&quot;n&quot;&gt;google&lt;/span&gt;/&lt;span class=&quot;n&quot;&gt;cadvisor&lt;/span&gt;
-    &lt;span class=&quot;n&quot;&gt;hostname&lt;/span&gt;: &lt;span class=&quot;s1&quot;&gt;'{{.Node.ID}}'&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;hostname&lt;/span&gt;: &lt;span class=&quot;s1&quot;&gt;'{{.Node.Hostname}}'&lt;/span&gt;
     &lt;span class=&quot;n&quot;&gt;command&lt;/span&gt;: -&lt;span class=&quot;n&quot;&gt;logtostderr&lt;/span&gt; -&lt;span class=&quot;n&quot;&gt;docker_only&lt;/span&gt; -&lt;span class=&quot;n&quot;&gt;storage_driver&lt;/span&gt;=&lt;span class=&quot;n&quot;&gt;influxdb&lt;/span&gt; -&lt;span class=&quot;n&quot;&gt;storage_driver_db&lt;/span&gt;=&lt;span class=&quot;n&quot;&gt;cadvisor&lt;/span&gt; -&lt;span class=&quot;n&quot;&gt;storage_driver_host&lt;/span&gt;=&lt;span class=&quot;n&quot;&gt;influx&lt;/span&gt;:&lt;span class=&quot;m&quot;&gt;8086&lt;/span&gt;
     &lt;span class=&quot;n&quot;&gt;volumes&lt;/span&gt;:
       - /:/&lt;span class=&quot;n&quot;&gt;rootfs&lt;/span&gt;:&lt;span class=&quot;n&quot;&gt;ro&lt;/span&gt;
@@ -700,9 +700,9 @@ y2gstaqpqix1exz09nyjn8z41    agent2    Ready   Active&lt;/code&gt;&lt;/pre&gt;&l
 
 &lt;h1 id=&quot;cadvisor-1&quot;&gt;cadvisor&lt;/h1&gt;
 
-&lt;p&gt;cAdvisor service has much more configuration required than the other services. To know more, check &lt;a href=&quot;https://github.com/google/cadvisor&quot;&gt;this&lt;/a&gt; out. The hostname key is a tricky one. We intend to put one agent in each node of the swarm and this container will collect all metrics from the node and the containers running in it. When cAdvisor send metrics to InfluxDB, it send it with a tag &lt;code class=&quot;highlighter-rouge&quot;&gt;machine&lt;/code&gt; that contains the hostname of cAdvisor container. We need to match it with the ID of the node running it. Docker stacks allows templating in naming. You can find more information about this &lt;a href=&quot;https://github.com/docker/docker/blob/master/docs/reference/commandline/service_create.md#create-services-using-templates&quot;&gt;here&lt;/a&gt;. We have named the containers with the ID of the node running it so that we know where the metric is coming from. The is done by the value &lt;code class=&quot;highlighter-rouge&quot;&gt;'{{.Node.ID}}'&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;cAdvisor service has much more configuration required than the other services. To know more, check &lt;a href=&quot;https://github.com/google/cadvisor&quot;&gt;this&lt;/a&gt; out. The hostname key is a tricky one. We intend to put one agent in each node of the swarm and this container will collect all metrics from the node and the containers running in it. When cAdvisor send metrics to InfluxDB, it send it with a tag &lt;code class=&quot;highlighter-rouge&quot;&gt;machine&lt;/code&gt; that contains the hostname of cAdvisor container. We need to match it with the hostname of the node running it. Docker stacks allows templating in naming. We have named the containers with the ID of the node running it so that we know where the metric is coming from. The is done by the value &lt;code class=&quot;highlighter-rouge&quot;&gt;'{{.Node.Hostname}}'&lt;/code&gt;.&lt;/p&gt;
 
-&lt;p&gt;We also add some command line parameters to cadvisor. More about this can be found here. The &lt;code class=&quot;highlighter-rouge&quot;&gt;logtostderr&lt;/code&gt; redirects the logs generated by cadvsior to &lt;code class=&quot;highlighter-rouge&quot;&gt;stderr&lt;/code&gt;, which makes it easy to debug. The &lt;code class=&quot;highlighter-rouge&quot;&gt;docker_only&lt;/code&gt; flag says that we are only interested in docker based containers. The next three parameters defines where you want metrics to be pushed for storage. We are asking cAdvisor to push the metrics to &lt;code class=&quot;highlighter-rouge&quot;&gt;cadvisor&lt;/code&gt; database in InfluxDB server listening at &lt;code class=&quot;highlighter-rouge&quot;&gt;influx:8086&lt;/code&gt;. This will send the metrics to the influx service in the stack. In a stack, all ports are exposed and you don’t have to specifically mention them.&lt;/p&gt;
+&lt;p&gt;We also add some command line parameters to cadvisor. The &lt;code class=&quot;highlighter-rouge&quot;&gt;logtostderr&lt;/code&gt; redirects the logs generated by cadvsior to &lt;code class=&quot;highlighter-rouge&quot;&gt;stderr&lt;/code&gt;, which makes it easy to debug. The &lt;code class=&quot;highlighter-rouge&quot;&gt;docker_only&lt;/code&gt; flag says that we are only interested in docker based containers. The next three parameters defines where you want metrics to be pushed for storage. We are asking cAdvisor to push the metrics to &lt;code class=&quot;highlighter-rouge&quot;&gt;cadvisor&lt;/code&gt; database in InfluxDB server listening at &lt;code class=&quot;highlighter-rouge&quot;&gt;influx:8086&lt;/code&gt;. This will send the metrics to the influx service in the stack. In a stack, all ports are exposed and you don’t have to specifically mention them.&lt;/p&gt;
 
 &lt;p&gt;cAdvisor need the volumes mentioned in the file to collect the metrics from the host and docker system. We use the mode &lt;code class=&quot;highlighter-rouge&quot;&gt;global&lt;/code&gt; for deploy in cadvisor service. This will ensure that exactly one instance of cadvisor service will be run in each node of the swarm.&lt;/p&gt;
 
